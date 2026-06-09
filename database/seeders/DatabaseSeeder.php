@@ -17,28 +17,36 @@ class DatabaseSeeder extends Seeder
             UserRoleSeeder::class,
         ]);
 
-        // Demo users (same password for testing): password
-        // Use updateOrCreate to avoid duplicate email issues when reseeding.
         $seedUsers = [
             [
                 'name' => 'Super Admin',
                 'email' => 'superadmin@elibra.com',
                 'role' => 'super_admin',
+                'password' => bcrypt('password'),
+                'confirm_password' => 'password',
+
             ],
             [
                 'name' => 'Admin',
                 'email' => 'admin@elibra.com',
                 'role' => 'admin',
+                'password' => bcrypt('password'),
+                'confirm_password' => bcrypt('password'),
+
             ],
             [
                 'name' => 'Author',
                 'email' => 'author@elibra.com',
                 'role' => 'author',
+                'password' => 'password',
+                'confirm_password' => 'password',
             ],
             [
                 'name' => 'User',
                 'email' => 'user@elibra.com',
                 'role' => 'user',
+                'password' => 'password',
+                'confirm_password' => 'password',
             ],
         ];
 
@@ -50,7 +58,8 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $u['name'],
                     'role_id' => $roleId,
-                    // Keep existing password if user exists; factories generate a password by default.
+                    'password' => $u['password'],
+                    'confirm_password' => $u['confirm_password'],
                 ]
             );
         }

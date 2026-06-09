@@ -2,45 +2,33 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
 
-Route::post('/login', function (Request $request) {
-    $user = User::where('email', $request->email)->first();
-
-    if (!$user || !Hash::check($request->password, $user->password)) {
-        return response()->json([
-            'message' => 'Invalid credentials'
-        ], 401);
-    }
-
-    $token = $user->createToken('api-token')->plainTextToken;
-
-    return response()->json([
-        'token' => $token
-    ]);
-});
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/me', function (Request $request) {
-        return response()->json([
-            'id' => $request->user()->id,
-            'name' => $request->user()->name,
-            'email' => $request->user()->email,
-            'role' => optional($request->user()->role)->role,
-        ]);
-    });
+    Route::get('/me', [UserController::class, 'me']);
 
     Route::get('/admin-only', function (Request $request) {
-        return response()->json(['message' => 'Admin endpoint']);
+        return response()->json([
+            'message' => 'Admin endpoint',
+            'data' => null,
+        ]);
     })->middleware(RoleMiddleware::class . ':admin');
 
     Route::get('/author-only', function (Request $request) {
-        return response()->json(['message' => 'Author endpoint']);
+        return response()->json([
+            'message' => 'Author endpoint',
+            'data' => null,
+        ]);
     })->middleware(RoleMiddleware::class . ':author');
 
     Route::get('/user-only', function (Request $request) {
-        return response()->json(['message' => 'User endpoint']);
+        return response()->json([
+            'message' => 'User endpoint',
+            'data' => null,
+        ]);
     })->middleware(RoleMiddleware::class . ':user');
 });
