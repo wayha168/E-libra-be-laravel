@@ -22,22 +22,22 @@ class DatabaseSeeder extends Seeder
         $seedUsers = [
             [
                 'name' => 'Super Admin',
-                'email' => 'superadmin@example.com',
+                'email' => 'superadmin@elibra.com',
                 'role' => 'super_admin',
             ],
             [
                 'name' => 'Admin',
-                'email' => 'admin@example.com',
+                'email' => 'admin@elibra.com',
                 'role' => 'admin',
             ],
             [
                 'name' => 'Author',
-                'email' => 'author@example.com',
+                'email' => 'author@elibra.com',
                 'role' => 'author',
             ],
             [
                 'name' => 'User',
-                'email' => 'user@example.com',
+                'email' => 'user@elibra.com',
                 'role' => 'user',
             ],
         ];

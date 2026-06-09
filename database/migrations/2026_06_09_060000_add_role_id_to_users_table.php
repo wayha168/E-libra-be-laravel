@@ -33,13 +33,11 @@ return new class extends Migration
                 $table->dropColumn('role_id');
             }
 
-            // Restore composite primary key attempt (best-effort)
-            // If this fails on your DB, you can ignore since the migration rollback isn't typically used in production.
-            try {
-                $table->primary(['role_id', 'email']);
-            } catch (\Throwable $e) {
-                // no-op
-            }
+            // No primary-key changes on rollback.
+            // The initial users table uses the default $table->id() primary key.
+            // role_id/email should not define a composite primary key (MySQL would reject it).
+
+            // (Intentionally left blank)
         });
     }
 };

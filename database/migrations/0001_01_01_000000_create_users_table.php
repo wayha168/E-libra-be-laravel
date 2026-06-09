@@ -19,7 +19,10 @@ return new class extends Migration
             $table->string('password');
             $table->string('confirm_password');
             $table->boolean('user_subscribe')->default(false);
-            $table->primary(['role_id', 'email']);
+            // role_id is added in a later migration
+            // so the initial users table must not reference it in primary keys.
+
+            // Primary key remains the default $table->id() defined above.
             $table->rememberToken();
             $table->timestamps();
         });
