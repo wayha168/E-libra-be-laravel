@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use App\Models\Role;
-
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
-
+use App\Models\Author;
+use App\Models\Image;
 
 use Database\Factories\UserFactory;
+
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +21,19 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+
+    public function authorProfile()
+    {
+        return $this->hasOne(Author::class, 'user_id', 'id');
+    }
+
+    public function profileImage()
+    {
+        return $this->belongsTo(Image::class, 'profile_image_id', 'id');
+    }
+
+
+
 
     protected function casts(): array
     {

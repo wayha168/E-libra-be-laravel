@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ config('app.name', 'e-Libra') }} - Login</title>
-    @vite(['resources/css/app.css','resources/js/app.js'])
+    @vite(['resources/css/app.css','resources/js/app.js','resources/js/auth/login.js'])
 </head>
 
 <body class="min-h-screen font-sans bg-gradient-to-b from-[#F7F7F7] via-white to-white p-4">
@@ -49,65 +49,6 @@
             </div>
         </div>
 
-        <script>
-            const form = document.getElementById('loginForm');
-            const errorBox = document.getElementById('errorBox');
-            const submitBtn = document.getElementById('submitBtn');
-            const btnSpinner = document.getElementById('btnSpinner');
-            const btnText = document.getElementById('btnText');
-
-            function showError(message) {
-                errorBox.textContent = message;
-                errorBox.classList.remove('hidden');
-            }
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                errorBox.classList.add('hidden');
-
-                submitBtn.disabled = true;
-                btnSpinner.classList.remove('hidden');
-                btnText.textContent = 'Signing in...';
-
-                const body = {
-                    email: form.email.value,
-                    password: form.password.value,
-                };
-
-                try {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify(body),
-                    });
-
-                    const data = await res.json().catch(() => null);
-
-                    if (!res.ok) {
-                        showError(data?.message || 'Invalid credentials');
-                        return;
-                    }
-
-                    const token = data?.data?.token;
-                    if (!token) {
-                        showError('Token missing from response');
-                        return;
-                    }
-
-                    localStorage.setItem('api_token', token);
-                    window.location.href = '/home';
-                } catch (err) {
-                    showError('Network error. Please try again.');
-                } finally {
-                    submitBtn.disabled = false;
-                    btnSpinner.classList.add('hidden');
-                    btnText.textContent = 'Login';
-                }
-            });
-        </script>
 </body>
 
 </html>

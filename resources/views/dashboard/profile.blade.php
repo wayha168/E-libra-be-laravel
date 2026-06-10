@@ -4,27 +4,23 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ config('app.name', 'e-Libra') }} - Home</title>
+    <title>Dashboard Profile</title>
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/home.js'])
 </head>
 
 <body class="min-h-screen bg-white text-[#1b1b18]">
-
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
         @include('components.aside')
 
         <div class="flex-1 flex min-w-0 flex-col">
-            <!-- Header -->
             @include('components.header')
 
-            <!-- Main -->
             <main class="flex-1 p-6">
                 <div class="max-w-5xl mx-auto">
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <h1 class="text-2xl font-semibold">Dashboard</h1>
-                            <p class="text-sm text-gray-600">Your account details</p>
+                            <h1 class="text-2xl font-semibold">My Profile</h1>
+                            <p class="text-sm text-gray-600">Account details</p>
                         </div>
                     </div>
 
@@ -55,13 +51,12 @@
                             </div>
 
                             <div class="mt-6 text-sm text-gray-600">
-                                Token is stored in <span class="font-mono">sessionStorage</span>. For production, consider httpOnly cookies.
+                                Token is stored in <span class="font-mono">sessionStorage/localStorage</span>.
                             </div>
 
                             <div class="mt-4 text-xs text-gray-500">
-                                <span class="font-semibold">Profile icon:</span> using an avatar button in the header.
+                                Use the avatar button in the header dropdown to logout.
                             </div>
-
                         </div>
 
                         <div id="error" class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 text-sm"></div>
@@ -69,8 +64,7 @@
                 </div>
             </main>
         </div>
-
-
+    </div>
 </body>
 
 </html>
