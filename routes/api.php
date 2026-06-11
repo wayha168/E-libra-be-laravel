@@ -17,9 +17,9 @@ Route::prefix('v1')->group(function () {
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/me', [UserController::class, 'me']);
-
+    Route::get('/user/profile', [UserController::class, 'profile']);
     Route::resource('books', BooksController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
-    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('images', ImageController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
     Route::get('/admin-only', function (Request $request) {

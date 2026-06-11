@@ -23,7 +23,7 @@
                     <div id="accountEmail" class="text-sm font-semibold text-[#1b1b18]">-</div>
                 </div>
 
-                <a href="#" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">Profile</a>
+                <a href="/profile" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">Profile</a>
 
                 <div class="px-4 py-2 text-xs text-gray-500">
                     Signed in as <span id="accountEmailMenu" class="font-medium">-</span>

@@ -1,13 +1,13 @@
 @extends('main')
 
-@section('title', 'Dashboard')
+@section('title', 'profile')
 
 @section('content')
 <div class="max-w-5xl mx-auto">
     <div class="flex items-center justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-semibold">Dashboard</h1>
-            <p class="text-sm text-gray-600">Welcome back</p>
+            <h1 class="text-2xl font-semibold">Profile</h1>
+            <p class="text-sm text-gray-600">Your account details</p>
         </div>
     </div>
 
@@ -26,19 +26,16 @@
 
             <hr class="border-gray-100 mb-5" />
 
-            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Summary</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="p-4 rounded-lg border border-gray-200">
                     <div class="text-xs text-gray-500">Books</div>
                     <div id="bookCount" class="mt-1 text-2xl font-semibold">-</div>
                 </div>
                 <div class="p-4 rounded-lg border border-gray-200">
-                    <div class="text-xs text-gray-500">Categories</div>
-                    <div id="categoryCount" class="mt-1 text-2xl font-semibold">-</div>
-                </div>
-                <div class="p-4 rounded-lg border border-gray-200">
-                    <div class="text-xs text-gray-500">Images</div>
-                    <div id="imageCount" class="mt-1 text-2xl font-semibold">-</div>
+                    <div class="text-xs text-gray-500">Permissions</div>
+                    <div class="mt-1 text-sm text-gray-700" id="permissionBadges">
+                        <span class="text-gray-400">-</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -48,3 +45,36 @@
 </div>
 @endsection
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/user/profile')
+        .then(r => r.json())
+        .then(data => {
+            if (data.user) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('profile').classList.remove('hidden');
+                document.getElementById('avatarInitial').textContent = data.user.name.charAt(0).toUpperCase();
+                document.getElementById('name').textContent = data.user.name;
+                document.getElementById('email').textContent = data.user.email;
+                document.getElementById('role').textContent = data.user.role;
+                document.getElementById('bookCount').textContent = data.user.books_count ?? 0;
+
+                const badges = document.getElementById('permissionBadges');
+                if (data.permissions && data.permissions.length > 0) {
+                    badges.innerHTML = data.permissions.map(p =>
+                        `<span class="inline-flex px-2 py-0.5 mr-1 mb-1 rounded text-xs bg-green-50 text-green-700">${p.display_name}</span>`
+                    ).join('');
+                } else {
+                    badges.innerHTML = '<span class="text-gray-400">-</span>';
+                }
+            }
+        })
+        .catch(err => {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('error').textContent = 'Failed to load profile';
+        });
+});
+</script>
+@endpush

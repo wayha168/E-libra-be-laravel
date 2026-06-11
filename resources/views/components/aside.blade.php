@@ -8,10 +8,10 @@
     </div>
 
     <nav class="space-y-2">
-        <a href="/home" class="block px-3 py-2 rounded-lg bg-black/5 text-black font-medium">Overview</a>
-        <a href="/dashboard/books" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Books</a>
-        <a href="/dashboard/categories" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Categories</a>
-        <a href="/dashboard/images" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Images</a>
+        <a href="{{ route('dashboard.index') }}" class="block px-3 py-2 rounded-lg bg-black/5 text-black font-medium">Overview</a>
+        <a href="{{ route('dashboard.books.index') }}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Books</a>
+        <a href="{{ route('dashboard.categories.index') }}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Categories</a>
+        <a href="{{ route('dashboard.images.index') }}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Images</a>
           @auth 
         @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
         <a href="{{ route('dashboard.users.index') }}" class="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition">Users</a>

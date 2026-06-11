@@ -23,6 +23,11 @@ class Role extends Model
         return $this->hasMany(User::class, 'role_id', 'id');
     }
 
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'role_permissions', 'role_id', 'permission_id');
+    }
+
     public function getDisplayNameAttribute(): string
     {
         return ucfirst(str_replace('_', ' ', (string) $this->role));

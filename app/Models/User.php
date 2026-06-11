@@ -33,9 +33,6 @@ class User extends Authenticatable
         return $this->belongsTo(Image::class, 'profile_image_id', 'id');
     }
 
-
-
-
     protected function casts(): array
     {
         return [
@@ -52,6 +49,15 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role && $this->role->role === $role;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->role && $this->role->permissions()->where('permissions.name', $permission)->exists();
     }
 
     public function isSuperAdmin(): bool

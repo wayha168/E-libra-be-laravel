@@ -55,23 +55,18 @@ if (document.getElementById("bookCount")) {
             if (elEmail) elEmail.textContent = email;
             if (elRole) elRole.textContent = role;
 
-            const [booksData, categoriesData, imagesData] = await Promise.all([
+            const [booksData, permissionsData] = await Promise.all([
                 fetchWithAuth("/api/v1/books", token),
-                fetchWithAuth("/api/v1/categories", token),
-                fetchWithAuth("/api/v1/images", token),
+                fetchWithAuth("/api/v1/permissions", token),
             ]);
 
             const bookCount = booksData?.data?.total ?? booksData?.total ?? "-";
-            const categoryCount = categoriesData?.data?.total ?? categoriesData?.total ?? "-";
-            const imageCount = imagesData?.data?.total ?? imagesData?.total ?? "-";
-
+            const permissionsCount = permissionsData?.data?.total ?? permissionsData?.total ?? "-";
             const elBookCount = document.getElementById("bookCount");
-            const elCategoryCount = document.getElementById("categoryCount");
-            const elImageCount = document.getElementById("imageCount");
+            const elPermissionsCount = document.getElementById("permissionsCount");
 
             if (elBookCount) elBookCount.textContent = bookCount;
-            if (elCategoryCount) elCategoryCount.textContent = categoryCount;
-            if (elImageCount) elImageCount.textContent = imageCount;
+            if (elPermissionsCount) elPermissionsCount.textContent = permissionsCount;
 
             if (loading) loading.classList.add("hidden");
             if (profile) profile.classList.remove("hidden");
