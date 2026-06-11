@@ -2,19 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-use App\Models\Author;
-use App\Models\User;
-use App\Models\Books;
-use App\Models\Category;
-
 
 class Image extends Model
 {
     /** @use HasFactory<\Database\Factories\ImageFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'url',

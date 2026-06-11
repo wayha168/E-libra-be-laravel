@@ -20,8 +20,8 @@ if (form) {
         if (btnText) btnText.textContent = "Signing in...";
 
         const body = {
-            email: form.email.value,
-            password: form.password.value,
+            email: form.querySelector('[name="email"]').value,
+            password: form.querySelector('[name="password"]').value,
         };
 
         try {
@@ -44,6 +44,24 @@ if (form) {
             const token = data?.data?.token;
             if (!token) {
                 showError("Token missing from response");
+                return;
+            }
+
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+            const sessionRes = await fetch("/auth/session", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": csrf || "",
+                },
+                body: JSON.stringify({ token }),
+                credentials: "same-origin",
+            });
+
+            if (!sessionRes.ok) {
+                const sessionData = await sessionRes.json().catch(() => null);
+                showError(sessionData?.message || "Could not start session");
                 return;
             }
 

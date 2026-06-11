@@ -11,7 +11,7 @@ class UserController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user()->load('role');
 
         return response()->json([
             'message' => 'User fetched successfully',
@@ -19,7 +19,8 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => optional($user->role)->role,
+                'role' => $user->display_role,
+                'status' => $user->display_status,
             ],
         ]);
     }

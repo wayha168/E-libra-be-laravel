@@ -8,37 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // categories: connect to images (image + banner)
         Schema::table('categories', function (Blueprint $table) {
             if (!Schema::hasColumn('categories', 'image_id')) {
-                $table->unsignedBigInteger('image_id')->nullable()->after('parent_id');
+                $table->foreignUuid('image_id')->nullable()->after('parent_id')->constrained('images')->nullOnDelete();
             }
             if (!Schema::hasColumn('categories', 'banner_image_id')) {
-                $table->unsignedBigInteger('banner_image_id')->nullable()->after('image_id');
+                $table->foreignUuid('banner_image_id')->nullable()->after('image_id')->constrained('images')->nullOnDelete();
             }
         });
 
-        Schema::table('categories', function (Blueprint $table) {
-            if (Schema::hasColumn('categories', 'image_id')) {
-                $table->foreign('image_id')->references('id')->on('images')->nullOnDelete();
-            }
-            if (Schema::hasColumn('categories', 'banner_image_id')) {
-                $table->foreign('banner_image_id')->references('id')->on('images')->nullOnDelete();
-            }
-        });
-
-        // books: connect to author/category + book image
         Schema::table('books', function (Blueprint $table) {
             if (!Schema::hasColumn('books', 'author_id')) {
-                $table->unsignedBigInteger('author_id')->after('id');
+                $table->foreignUuid('author_id')->after('id')->constrained('authors')->cascadeOnDelete();
             }
 
             if (!Schema::hasColumn('books', 'category_id')) {
-                $table->unsignedBigInteger('category_id')->after('author_id');
+                $table->foreignUuid('category_id')->after('author_id')->constrained('categories')->cascadeOnDelete();
             }
 
             if (!Schema::hasColumn('books', 'image_id')) {
-                $table->unsignedBigInteger('image_id')->nullable()->after('category_id');
+                $table->foreignUuid('image_id')->nullable()->after('category_id')->constrained('images')->nullOnDelete();
             }
 
             if (!Schema::hasColumn('books', 'title')) {
@@ -47,18 +36,6 @@ return new class extends Migration
 
             if (!Schema::hasColumn('books', 'description')) {
                 $table->text('description')->nullable()->after('title');
-            }
-        });
-
-        Schema::table('books', function (Blueprint $table) {
-            if (Schema::hasColumn('books', 'author_id')) {
-                $table->foreign('author_id')->references('id')->on('authors')->cascadeOnDelete();
-            }
-            if (Schema::hasColumn('books', 'category_id')) {
-                $table->foreign('category_id')->references('id')->on('categories')->cascadeOnDelete();
-            }
-            if (Schema::hasColumn('books', 'image_id')) {
-                $table->foreign('image_id')->references('id')->on('images')->nullOnDelete();
             }
         });
     }

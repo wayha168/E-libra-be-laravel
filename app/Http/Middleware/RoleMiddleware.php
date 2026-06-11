@@ -13,18 +13,30 @@ class RoleMiddleware
         $user = $request->user();
 
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return $this->reject($request, 401, 'Unauthenticated');
         }
 
-        // super_admin can access everything
         if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
             return $next($request);
         }
 
         if (!method_exists($user, 'hasRole') || !$user->hasRole($role)) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return $this->reject($request, 403, 'Forbidden');
         }
 
         return $next($request);
+    }
+
+    private function reject(Request $request, int $status, string $message): Response
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], $status);
+        }
+
+        if ($status === 401) {
+            return redirect()->guest(route('login'));
+        }
+
+        abort($status, $message);
     }
 }

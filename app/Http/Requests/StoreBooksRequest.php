@@ -7,23 +7,20 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreBooksRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'author_id' => ['nullable', 'uuid', 'exists:authors,id'],
+            'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
+            'image_id' => ['nullable', 'uuid', 'exists:images,id'],
+            'image_file' => ['nullable', 'image', 'max:5120'],
         ];
     }
 }

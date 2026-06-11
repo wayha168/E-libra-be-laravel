@@ -4,8 +4,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>{{ config('app.name', 'e-Libra') }} - Login</title>
-    @vite(['resources/css/app.css','resources/js/app.js','resources/js/auth/login.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="min-h-screen font-sans bg-gradient-to-b from-[#F7F7F7] via-white to-white p-4">

@@ -16,8 +16,10 @@ class ImageController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
-            $query->where('path', 'like', "%{$search}%")
-                ->orWhere('alt', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('url', 'like', "%{$search}%")
+                    ->orWhere('alt_text', 'like', "%{$search}%");
+            });
         }
 
         return response()->json([

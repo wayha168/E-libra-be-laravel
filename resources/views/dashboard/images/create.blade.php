@@ -1,46 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('main')
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Create Image</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@section('title', 'Create Image')
 
-<body class="min-h-screen bg-white text-[#1b1b18]">
-    <div class="p-6 max-w-3xl">
-        <h1 class="text-2xl font-semibold mb-4">Create Image</h1>
+@section('content')
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-semibold mb-4">Create Image</h1>
 
-        @if($errors->any())
-        <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
-            <ul class="list-disc pl-5">
-                @foreach($errors->all() as $err)
-                <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
-
-        <form method="POST" action="{{ route('dashboard.images.store') }}" class="space-y-4">
-            @csrf
-
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">Path</label>
-                <input name="path" value="{{ old('path') }}" class="w-full border rounded px-3 py-2" />
-            </div>
-
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">Alt</label>
-                <input name="alt" value="{{ old('alt') }}" class="w-full border rounded px-3 py-2" />
-            </div>
-
-            <div class="flex gap-2">
-                <a href="{{ route('dashboard.images.index') }}" class="px-3 py-2 border rounded">Back</a>
-                <button class="px-3 py-2 bg-black text-white rounded" type="submit">Save</button>
-            </div>
-        </form>
+    @if($errors->any())
+    <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
+        <ul class="list-disc pl-5">
+            @foreach($errors->all() as $err)
+            <li>{{ $err }}</li>
+            @endforeach
+        </ul>
     </div>
-</body>
+    @endif
 
-</html>
+    <form method="POST" action="{{ route('dashboard.images.store') }}" class="space-y-4" enctype="multipart/form-data">
+        @csrf
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Upload image</label>
+            <input type="file" name="image_file" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Url (optional if uploading file)</label>
+            <input name="url" value="{{ old('url') }}" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Alt text</label>
+            <input name="alt_text" value="{{ old('alt_text') }}" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Type</label>
+            <input name="image_type" value="{{ old('image_type') }}" class="w-full border rounded px-3 py-2" placeholder="general, profile, book..." />
+        </div>
+
+        <div class="flex gap-2">
+            <a href="{{ route('dashboard.images.index') }}" class="px-3 py-2 border rounded">Back</a>
+            <button class="px-3 py-2 bg-black text-white rounded" type="submit">Save</button>
+        </div>
+    </form>
+</div>
+@endsection

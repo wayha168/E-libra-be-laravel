@@ -10,17 +10,18 @@ use Database\Factories\UserFactory;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role_id'])]
+#[Fillable(['name', 'email', 'password', 'confirm_password', 'role_id', 'status', 'profile_image_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, HasUuids, Notifiable, HasApiTokens;
 
     public function authorProfile()
     {
@@ -71,5 +72,15 @@ class User extends Authenticatable
     public function isUser(): bool
     {
         return $this->hasRole('user');
+    }
+
+    public function getDisplayStatusAttribute(): string
+    {
+        return ucfirst((string) ($this->status ?? 'active'));
+    }
+
+    public function getDisplayRoleAttribute(): string
+    {
+        return $this->role?->display_name ?? '-';
     }
 }

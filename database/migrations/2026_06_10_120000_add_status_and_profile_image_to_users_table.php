@@ -14,15 +14,10 @@ return new class extends Migration
             }
 
             if (!Schema::hasColumn('users', 'profile_image_id')) {
-                $table->unsignedBigInteger('profile_image_id')->nullable()->after('status');
-            }
-        });
-
-        Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'profile_image_id')) {
-                $table->foreign('profile_image_id')
-                    ->references('id')
-                    ->on('images')
+                $table->foreignUuid('profile_image_id')
+                    ->nullable()
+                    ->after('status')
+                    ->constrained('images')
                     ->nullOnDelete();
             }
         });

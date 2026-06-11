@@ -1,61 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('main')
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Create Book</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
+@section('title', 'Create Book')
 
-<body class="min-h-screen bg-white text-[#1b1b18]">
-    <div class="p-6 max-w-3xl">
-        <h1 class="text-2xl font-semibold mb-4">Create Book</h1>
+@section('content')
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-semibold mb-4">Create Book</h1>
 
-        @if($errors->any())
-        <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
-            <ul class="list-disc pl-5">
-                @foreach($errors->all() as $err)
-                <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
-
-        <form method="POST" action="{{ route('dashboard.books.store') }}" class="space-y-4">
-            @csrf
-
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">Title</label>
-                <input name="title" value="{{ old('title') }}" class="w-full border rounded px-3 py-2" />
-            </div>
-
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">Description</label>
-                <textarea name="description" class="w-full border rounded px-3 py-2">{{ old('description') }}</textarea>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Author ID</label>
-                    <input name="author_id" value="{{ old('author_id') }}" class="w-full border rounded px-3 py-2" />
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Category ID</label>
-                    <input name="category_id" value="{{ old('category_id') }}" class="w-full border rounded px-3 py-2" />
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Image ID</label>
-                    <input name="image_id" value="{{ old('image_id') }}" class="w-full border rounded px-3 py-2" />
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <a href="{{ route('dashboard.books.index') }}" class="px-3 py-2 border rounded">Back</a>
-                <button class="px-3 py-2 bg-black text-white rounded" type="submit">Save</button>
-            </div>
-        </form>
+    @if($errors->any())
+    <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">
+        <ul class="list-disc pl-5">
+            @foreach($errors->all() as $err)
+            <li>{{ $err }}</li>
+            @endforeach
+        </ul>
     </div>
-</body>
+    @endif
 
-</html>
+    <form method="POST" action="{{ route('dashboard.books.store') }}" class="space-y-4" enctype="multipart/form-data">
+        @csrf
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Title</label>
+            <input name="title" value="{{ old('title') }}" required class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" />
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Description</label>
+            <textarea name="description" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40">{{ old('description') }}</textarea>
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Category</label>
+            <select name="category_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40">
+                <option value="">-- Select category --</option>
+                @foreach($categories ?? [] as $category)
+                <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Upload Image</label>
+            <input type="file" name="image_file" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            <input type="hidden" name="image_id" value="{{ old('image_id') }}" />
+        </div>
+
+        <div class="flex gap-2">
+            <a href="{{ route('dashboard.books.index') }}" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Back</a>
+            <button class="px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition" type="submit">Save</button>
+        </div>
+    </form>
+</div>
+@endsection

@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
                 'email' => 'superadmin@elibra.com',
                 'role' => 'super_admin',
                 'password' => bcrypt('password'),
-                'confirm_password' => 'password',
+                'confirm_password' => bcrypt('password'),
 
             ],
             [
@@ -38,15 +38,15 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Author',
                 'email' => 'author@elibra.com',
                 'role' => 'author',
-                'password' => 'password',
-                'confirm_password' => 'password',
+                'password' => bcrypt('password'),
+                'confirm_password' => bcrypt('password'),
             ],
             [
                 'name' => 'User',
                 'email' => 'user@elibra.com',
                 'role' => 'user',
-                'password' => 'password',
-                'confirm_password' => 'password',
+                'password' => bcrypt('password'),
+                'confirm_password' => bcrypt('password'),
             ],
         ];
 
