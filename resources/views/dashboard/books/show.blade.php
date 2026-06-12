@@ -4,34 +4,70 @@
 
 @section('content')
 <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl font-semibold mb-4">Book #{{ $book->id }}</h1>
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-2xl font-semibold">Book #{{ $book->id }}</h1>
+        <x-table-actions
+            :edit-url="route('dashboard.books.edit', $book)"
+            :delete-url="route('dashboard.books.destroy', $book)"
+            delete-confirm="Delete this book?" />
+    </div>
 
-    <div class="space-y-3">
+    <div class="mt-4 space-y-3">
         <div>
             <div class="text-xs text-gray-500">Title</div>
             <div class="font-semibold">{{ $book->title }}</div>
         </div>
+
         <div>
             <div class="text-xs text-gray-500">Description</div>
-            <div class="whitespace-pre-wrap">{{ $book->description }}</div>
+            <div class="whitespace-pre-wrap">{{ $book->description ?? '-' }}</div>
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="text-xs text-gray-500">Author</div>
+                <div class="font-semibold">{{ $book->author->user->name ?? '-' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs text-gray-500">Category</div>
+                <div class="font-semibold">{{ $book->category->name ?? '-' }}</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="text-xs text-gray-500">Public Date</div>
+                <div class="font-semibold">{{ $book->public_date?->format('Y-m-d') ?? '-' }}</div>
+            </div>
+
+            <div>
+                <div class="text-xs text-gray-500">Subscription Required</div>
+                <span class="inline-flex px-2 py-0.5 rounded text-xs {{ $book->is_subscribed ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700' }}">
+                    {{ $book->is_subscribed ? 'Yes' : 'No' }}
+                </span>
+            </div>
+        </div>
+
         <div>
-            <div class="text-xs text-gray-500">Author ID</div>
-            <div class="font-semibold">{{ $book->author_id }}</div>
+            <div class="text-xs text-gray-500">Cover Image</div>
+            @if($book->image)
+            <img src="{{ $book->image->url }}" alt="Book cover" class="h-20 w-20 object-cover rounded mt-1" />
+            @else
+            <span class="text-gray-400">-</span>
+            @endif
         </div>
+
+        @if($book->pdf_file)
         <div>
-            <div class="text-xs text-gray-500">Category ID</div>
-            <div class="font-semibold">{{ $book->category_id }}</div>
+            <div class="text-xs text-gray-500">PDF File</div>
+            <a href="{{ $book->pdf_file }}" target="_blank" class="text-blue-600 text-sm hover:underline">Download PDF</a>
         </div>
-        <div>
-            <div class="text-xs text-gray-500">Image ID</div>
-            <div class="font-semibold">{{ $book->image_id }}</div>
-        </div>
+        @endif
     </div>
 
-    <div class="mt-6 flex gap-2">
-        <a href="{{ route('dashboard.books.index') }}" class="px-3 py-2 border rounded">Back</a>
-        <a href="{{ route('dashboard.books.edit', $book) }}" class="px-3 py-2 bg-black text-white rounded">Edit</a>
+    <div class="mt-6">
+        <a href="{{ route('dashboard.books.index') }}" class="px-3 py-2 border rounded hover:bg-gray-50 transition">Back</a>
     </div>
 </div>
 @endsection

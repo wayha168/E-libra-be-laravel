@@ -15,11 +15,13 @@ COPY composer.json composer.lock ./
 # Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
+# Copy the rest of the app BEFORE installing dependencies
+# (so Laravel artisan exists for composer post-autoload-dump)
+COPY . .
+
 # Install dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Copy the rest of the app
-COPY . .
 
 # Expose port for built-in server (used by docker.yaml)
 EXPOSE 8000

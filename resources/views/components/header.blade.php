@@ -1,4 +1,4 @@
-<header class="w-full bg-white border-b border-gray-200">
+<header class="w-full bg-white border-b border-gray-200 sticky top-0 z-10 flex-shrink-0">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm">eL</div>
@@ -25,9 +25,9 @@
 
                 <a href="/profile" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">Profile</a>
 
-                <div class="px-4 py-2 text-xs text-gray-500">
+                <!-- <div class="px-4 py-2 text-xs text-gray-500">
                     Signed in as <span id="accountEmailMenu" class="font-medium">-</span>
-                </div>
+                </div> -->
 
                 <button id="logoutMenuBtn" type="button" class="w-full text-left block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">
                     Logout

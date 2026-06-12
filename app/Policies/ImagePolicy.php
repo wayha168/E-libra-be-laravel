@@ -21,7 +21,7 @@ class ImagePolicy
      */
     public function view(User $user, Image $image): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -29,7 +29,7 @@ class ImagePolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return true;
     }
 
     /**

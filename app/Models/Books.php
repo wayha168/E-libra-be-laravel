@@ -17,6 +17,8 @@ class Books extends Model
         'author_id',
         'category_id',
         'image_id',
+        'is_subscribed',
+        'pdf_file',
     ];
 
     public function author()

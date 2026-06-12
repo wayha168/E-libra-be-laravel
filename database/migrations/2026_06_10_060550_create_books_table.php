@@ -10,6 +10,18 @@ return new class extends Migration
     {
         Schema::create('books', function (Blueprint $table) {
             $table->uuid('id')->primary();
+
+            // Limited book fields + public availability date
+            $table->string('title');
+            $table->text('description')->nullable();
+
+            // Genre is stored in category_id
+            $table->uuid('author_id')->nullable();
+            $table->uuid('category_id')->nullable();
+            $table->uuid('image_id')->nullable();
+
+            $table->date('public_date')->nullable();
+
             $table->timestamps();
         });
     }

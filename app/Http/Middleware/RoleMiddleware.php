@@ -20,8 +20,17 @@ class RoleMiddleware
             return $next($request);
         }
 
-        if (!method_exists($user, 'hasRole') || !$user->hasRole($role)) {
-            return $this->reject($request, 403, 'Forbidden');
+        if (!method_exists($user, 'hasRole')) {
+            return $this->reject($request, 403, 'Insufficient access rights');
+        }
+
+        // Routes often pass multiple roles like: role:admin,author,user
+        $roles = array_values(array_filter(array_map('trim', explode(',', $role))));
+
+        $allowed = in_array(true, array_map(fn($r) => $user->hasRole($r), $roles), true);
+
+        if (!$allowed) {
+            return $this->reject($request, 403, 'Insufficient access rights');
         }
 
         return $next($request);

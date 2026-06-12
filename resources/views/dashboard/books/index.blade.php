@@ -4,24 +4,23 @@
 
 @section('content')
 <div class="max-w-5xl mx-auto">
-    <div class="flex items-center justify-between gap-3">
+    <div class="mb-4 flex gap-2">
         <div>
             <h1 class="text-2xl font-semibold">Books</h1>
             <p class="text-sm text-gray-600">Manage your book library</p>
         </div>
+        <a href="{{ route('dashboard.books.create') }}" class="ml-auto px-3 py-3 bg-black text-white rounded-xl">Add Book</a>
+    </div>
+    <div class="mb-3 mt-3 flex items-center justify-end gap-3">
+        <form method="GET" action="{{ route('dashboard.books.index') }}" class="flex gap-2">
+            <input name="search" value="{{ request('search') }}" class="border rounded px-3 py-2" placeholder="Search" />
+            <button class="px-3 py-2 bg-black text-white rounded" type="submit">Search</button>
+        </form>
     </div>
 
     @if(session('success'))
     <div class="mb-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-800 text-sm">{{ session('success') }}</div>
     @endif
-
-    <div class="mb-4 flex gap-2">
-        <form method="GET" action="{{ route('dashboard.books.index') }}" class="flex gap-2">
-            <input name="search" value="{{ request('search') }}" class="border rounded px-3 py-2" placeholder="Search" />
-            <button class="px-3 py-2 bg-black text-white rounded" type="submit">Search</button>
-        </form>
-        <a href="{{ route('dashboard.books.create') }}" class="ml-auto px-3 py-2 bg-black text-white rounded">Create</a>
-    </div>
 
     <div class="overflow-auto border rounded">
         <table class="min-w-full text-sm">
@@ -48,8 +47,7 @@
                             :view-url="route('dashboard.books.show', $book)"
                             :edit-url="route('dashboard.books.edit', $book)"
                             :delete-url="route('dashboard.books.destroy', $book)"
-                            delete-confirm="Delete this book?"
-                        />
+                            delete-confirm="Delete this book?" />
                     </td>
                 </tr>
                 @endforeach

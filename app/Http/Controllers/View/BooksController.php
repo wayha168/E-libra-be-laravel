@@ -4,9 +4,11 @@ namespace App\Http\Controllers\View;
 
 use App\Http\Requests\StoreBooksRequest;
 use App\Http\Requests\UpdateBooksRequest;
+use App\Models\Author;
 use App\Models\Books;
 use App\Models\Category;
 use App\Models\Image;
+use App\Support\StoresUploadedFiles;
 use App\Support\StoresUploadedImages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,8 +39,9 @@ class BooksController
     {
         $categories = Category::orderBy('name')->get();
         $images = Image::orderBy('url')->get();
+        $authors = Author::with('user')->orderBy('id')->get();
 
-        return view('dashboard.books.create', compact('categories', 'images'));
+        return view('dashboard.books.create', compact('categories', 'images', 'authors'));
     }
 
     public function store(StoreBooksRequest $request): RedirectResponse
@@ -53,45 +56,54 @@ class BooksController
             );
         }
 
+        if ($request->hasFile('pdf_file')) {
+            $data['pdf_file'] = StoresUploadedFiles::storePdf($request->file('pdf_file'));
+        }
+
         Books::create($data);
 
         return redirect()->route('dashboard.books.index')->with('success', 'Book created successfully');
     }
 
-    public function show(Books $books): View
+    public function show(Books $book): View
     {
-        return view('dashboard.books.show', compact('books'));
+        return view('dashboard.books.show', compact('book'));
     }
 
-    public function edit(Books $books): View
+    public function edit(Books $book): View
     {
         $categories = Category::orderBy('name')->get();
         $images = Image::orderBy('url')->get();
+        $authors = Author::with('user')->orderBy('id')->get();
 
-        return view('dashboard.books.edit', compact('books', 'categories', 'images'));
+        return view('dashboard.books.edit', compact('book', 'categories', 'images', 'authors'));
     }
 
-    public function update(UpdateBooksRequest $request, Books $books): RedirectResponse
+    public function update(UpdateBooksRequest $request, Books $book): RedirectResponse
     {
         $data = $request->validated();
 
         if ($request->hasFile('image_file')) {
-            StoresUploadedImages::deleteById($books->image_id);
+            StoresUploadedImages::deleteById($book->image_id);
             $data['image_id'] = StoresUploadedImages::store(
                 $request->file('image_file'),
                 'book',
-                $data['title'] ?? $books->title
+                $data['title'] ?? $book->title
             );
         }
 
-        $books->update($data);
+        if ($request->hasFile('pdf_file')) {
+            $data['pdf_file'] = StoresUploadedFiles::storePdf($request->file('pdf_file'));
+        }
+
+        $book->update($data);
 
         return redirect()->route('dashboard.books.index')->with('success', 'Book updated successfully');
     }
 
-    public function destroy(Books $books): RedirectResponse
+    public function destroy(Books $book): RedirectResponse
     {
-        $books->delete();
+        $book->delete();
 
         return redirect()->route('dashboard.books.index')->with('success', 'Book deleted successfully');
     }
