@@ -26,7 +26,9 @@
 
 
     @if(session('success'))
-    <div class="mb-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-800 text-sm">{{ session('success') }}</div>
+    <div class="mb-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-800 text-sm">
+        {{ session('success') }}
+    </div>
     @endif
 
     <div class="overflow-auto border rounded">
@@ -34,16 +36,12 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="text-left px-4 py-2">ID</th>
-
                     <th class="text-left px-4 py-2">Name</th>
                     <th class="text-left px-4 py-2">Description</th>
                     <th class="text-left px-4 py-2">Slug</th>
                     <th class="text-left px-4 py-2">Image</th>
                     <th class="text-left px-4 py-2">Banner</th>
                     <th class="text-left px-4 py-2">Actions</th>
-
-
-
                 </tr>
             </thead>
             <tbody>

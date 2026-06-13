@@ -17,22 +17,34 @@
                 <span aria-hidden="true" class="text-gray-500">▾</span>
             </button>
 
-            <div id="accountMenu" class="hidden absolute right-0 mt-2 w-52 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-20">
+            <div id="accountMenu" class="hidden absolute right-0 mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden z-20">
                 <div class="px-4 py-3 border-b border-gray-100">
                     <div class="text-xs text-gray-500">Signed in as</div>
-                    <div id="accountEmail" class="text-sm font-semibold text-[#1b1b18]">-</div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center">
+                            <span id="accountInitial" class="text-sm font-semibold text-[#1b1b18]">U</span>
+                        </div>
+                        <div>
+                            <div id="accountEmail" class="text-sm font-semibold text-[#1b1b18]">-</div>
+                            <div id="accountRole" class="text-xs text-gray-500">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 py-3 border-b border-gray-50">
+                    <div class="text-xs text-gray-500 mb-2">Permissions</div>
+                    <div id="accountPermissions" class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-black/5 text-gray-700">-</span>
+                    </div>
                 </div>
 
                 <a href="/profile" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">Profile</a>
-
-                <!-- <div class="px-4 py-2 text-xs text-gray-500">
-                    Signed in as <span id="accountEmailMenu" class="font-medium">-</span>
-                </div> -->
 
                 <button id="logoutMenuBtn" type="button" class="w-full text-left block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition">
                     Logout
                 </button>
             </div>
+
         </div>
     </div>
 </header>

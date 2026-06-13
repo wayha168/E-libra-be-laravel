@@ -42,9 +42,9 @@
             </div>
 
             <div>
-                <div class="text-xs text-gray-500">Subscription Required</div>
-                <span class="inline-flex px-2 py-0.5 rounded text-xs {{ $book->is_subscribed ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-700' }}">
-                    {{ $book->is_subscribed ? 'Yes' : 'No' }}
+                <div class="text-xs text-gray-500">Price / Access</div>
+                <span class="inline-flex px-2 py-0.5 rounded text-xs {{ ($book->price > 0) ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700' }}">
+                    {{ ($book->price > 0) ? '$' . number_format($book->price, 2) : 'Free' }}
                 </span>
             </div>
         </div>

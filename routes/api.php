@@ -30,6 +30,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [UserController::class, 'me']);
         Route::get('/user/profile', [UserController::class, 'profile']);
+        Route::post('/user/subscribe', [UserController::class, 'subscribe']);
+        Route::get('/user/purchases', [UserController::class, 'purchases']);
 
         // Authenticated: permissions + CRUD for admin/author/user
         Route::get('/permissions', function (Request $request) {
@@ -58,6 +60,8 @@ Route::prefix('v1')->group(function () {
             ]);
         });
 
+        Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
+        Route::get('/books/{book}/download', [BooksController::class, 'download']);
         Route::resource('books', BooksController::class)->only(['index', 'store', 'show', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,user');
         Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,user');
 

@@ -23,7 +23,7 @@ class StoreBooksRequest extends FormRequest
             'public_date' => ['nullable', 'date'],
             'image_file' => ['nullable', 'image', 'max:5120'],
             'pdf_file' => ['nullable', 'mimes:pdf', 'max:10240'],
-            'is_subscribed' => ['sometimes', 'boolean'],
+            'price' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

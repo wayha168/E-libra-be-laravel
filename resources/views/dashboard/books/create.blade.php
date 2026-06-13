@@ -72,12 +72,10 @@
             </div>
         </div>
 
-        <div class="border rounded-lg p-4 bg-gray-50">
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="is_subscribed" value="1" {{ old('is_subscribed') ? 'checked' : '' }} class="w-4 h-4 border border-gray-300 rounded" />
-                <span class="text-sm text-gray-700">Requires subscription/payment to access</span>
-            </label>
-            <p class="text-xs text-gray-500 mt-1">When checked, users must subscribe/pay to unlock this book.</p>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Price</label>
+            <input type="number" name="price" step="0.01" min="0" value="{{ old('price') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" placeholder="0.00 or leave empty for free" />
+            <p class="text-xs text-gray-500 mt-1">Leave empty or 0 if this book is free. Set a price greater than 0 if the book requires payment or subscription to access.</p>
         </div>
 
         <div class="flex gap-2">

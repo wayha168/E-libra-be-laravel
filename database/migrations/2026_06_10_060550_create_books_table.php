@@ -14,6 +14,7 @@ return new class extends Migration
             // Limited book fields + public availability date
             $table->string('title');
             $table->text('description')->nullable();
+            $table->float('price')->nullable();
 
             // Genre is stored in category_id
             $table->uuid('author_id')->nullable();

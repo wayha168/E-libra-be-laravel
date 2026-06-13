@@ -4,6 +4,7 @@ namespace App\Http\Controllers\View;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -19,15 +20,18 @@ class PermissionController
         }
 
         $permissions = $query->latest()->paginate(10);
+        $roles = Role::orderBy('role')->get();
+        $users = User::with(['role.permissions', 'profileImage'])->latest()->paginate(10, ['*'], 'users_page');
 
-        return view('dashboard.permissions.index', compact('permissions'));
+        return view('dashboard.permissions.index', compact('permissions', 'roles', 'users'));
     }
 
     public function create(): View
     {
         $roles = Role::orderBy('role')->get();
+        $allPermissions = Permission::orderBy('display_name')->get();
 
-        return view('dashboard.permissions.create', compact('roles'));
+        return view('dashboard.permissions.create', compact('roles', 'allPermissions'));
     }
 
     public function store(Request $request): \Illuminate\Http\RedirectResponse
@@ -60,10 +64,15 @@ class PermissionController
 
     public function edit(Permission $permission): View
     {
-        $roles = Role::orderBy('role')->get();
-        $assignedRoles = $permission->roles()->pluck('id')->toArray();
+        $permission->load('roles');
 
-        return view('dashboard.permissions.edit', compact('permission', 'roles', 'assignedRoles'));
+        // Eager-load relationship counts shown in the view
+        $roles = Role::with('permissions')->orderBy('role')->get();
+        $assignedRoles = $permission->roles->pluck('id')->toArray();
+
+        $allPermissions = Permission::orderBy('display_name')->get();
+
+        return view('dashboard.permissions.edit', compact('permission', 'roles', 'assignedRoles', 'allPermissions'));
     }
 
     public function update(Request $request, Permission $permission): \Illuminate\Http\RedirectResponse
@@ -72,7 +81,9 @@ class PermissionController
             'display_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'roles' => 'array',
+            'roles.*' => 'uuid',
         ]);
+
 
         $permission->update([
             'display_name' => $data['display_name'],

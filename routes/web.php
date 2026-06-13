@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+use \App\Http\Controllers\View\AuthorsController;
 use App\Http\Controllers\View\BooksController;
 use App\Http\Controllers\View\CategoryController;
 use App\Http\Controllers\View\ImageController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\View\UserController;
 use App\Http\Controllers\View\WebAuthController;
 use App\Http\Controllers\View\PermissionController;
 
+Route::redirect('/', '/login');
 Route::view('/login', 'login')->middleware('guest')->name('login');
 
 Route::post('/auth/session', [WebAuthController::class, 'establishSession'])->name('auth.session');
@@ -31,9 +33,15 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('books', BooksController::class);
             Route::resource('categories', CategoryController::class);
             Route::resource('images', ImageController::class);
-            Route::resource('authors', \App\Http\Controllers\View\AuthorsController::class);
-            Route::get('/authors/{author}/books', [\App\Http\Controllers\View\AuthorsController::class, 'books'])
+            Route::resource('authors', AuthorsController::class);
+            Route::get('/authors/{author}/books', [AuthorsController::class, 'books'])
                 ->name('authors.books');
+
+            // Per-user category permissions (multi-user + mission tick boxes)
+            Route::get('/categories/{category}/permissions', [\App\Http\Controllers\View\CategoryUserPermissionController::class, 'edit'])
+                ->name('categories.permissions.edit');
+            Route::put('/categories/{category}/permissions', [\App\Http\Controllers\View\CategoryUserPermissionController::class, 'update'])
+                ->name('categories.permissions.update');
         });
     });
 });

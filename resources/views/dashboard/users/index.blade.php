@@ -9,6 +9,11 @@
             <h1 class="text-2xl font-semibold">Users</h1>
             <p class="text-sm text-gray-600">Manage platform users</p>
         </div>
+        
+        <a href="{{ route('dashboard.users.create') }}" class="ml-auto px-3 py-2 bg-black text-white rounded-xl transition hover:bg-gray-800">
+            Add Users
+        </a>
+
     </div>
 
     @if(session('success'))
@@ -19,12 +24,11 @@
     <div class="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm">{{ session('error') }}</div>
     @endif
 
-    <div class="mb-4 flex gap-2">
+    <div class="mb-4 flex gap-2 items-center justify-end">
         <form method="GET" action="{{ route('dashboard.users.index') }}" class="flex gap-2">
             <input name="search" value="{{ request('search') }}" class="border rounded px-3 py-2" placeholder="Search name or email" />
             <button class="px-3 py-2 bg-black text-white rounded" type="submit">Search</button>
         </form>
-        <a href="{{ route('dashboard.users.create') }}" class="ml-auto px-3 py-2 bg-black text-white rounded">Create</a>
     </div>
 
     <div class="overflow-auto border rounded">
@@ -74,7 +78,6 @@
             </tbody>
         </table>
     </div>
-
     <div class="mt-4">{{ $users->links() }}</div>
 </div>
 @endsection

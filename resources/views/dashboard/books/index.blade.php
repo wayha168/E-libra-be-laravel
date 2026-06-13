@@ -4,14 +4,14 @@
 
 @section('content')
 <div class="max-w-5xl mx-auto">
-    <div class="mb-4 flex gap-2">
+    <div class="mb-4 flex gap-2 flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Books</h1>
             <p class="text-sm text-gray-600">Manage your book library</p>
         </div>
-        <a href="{{ route('dashboard.books.create') }}" class="ml-auto px-3 py-3 bg-black text-white rounded-xl">Add Book</a>
+        <a href="{{ route('dashboard.books.create') }}" class="px-2 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition">Add Book</a>
     </div>
-    <div class="mb-3 mt-3 flex items-center justify-end gap-3">
+    <div class="mb-3 mt-3 flex items-center justify-end ">
         <form method="GET" action="{{ route('dashboard.books.index') }}" class="flex gap-2">
             <input name="search" value="{{ request('search') }}" class="border rounded px-3 py-2" placeholder="Search" />
             <button class="px-3 py-2 bg-black text-white rounded" type="submit">Search</button>

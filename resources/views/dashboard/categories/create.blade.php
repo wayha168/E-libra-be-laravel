@@ -18,8 +18,9 @@
 
     <form method="POST" action="{{ route('dashboard.categories.store') }}" class="space-y-4" enctype="multipart/form-data">
         @csrf
-
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="{{ route('dashboard.categories.index') }}" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Back</a>
+
             <div>
                 <label class="block text-sm text-gray-600 mb-1">Name</label>
                 <input name="name" value="{{ old('name') }}" required class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" />
@@ -56,7 +57,6 @@
         </div>
 
         <div class="flex gap-2">
-            <a href="{{ route('dashboard.categories.index') }}" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Back</a>
             <button class="px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition" type="submit">Save</button>
         </div>
     </form>
