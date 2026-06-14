@@ -13,7 +13,11 @@ class CategoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        if ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('view_categories');
     }
 
     /**
@@ -21,7 +25,11 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
-        return false;
+        if ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->hasCategoryPermission($user, $category, 'view_categories');
     }
 
     /**
@@ -29,7 +37,7 @@ class CategoryPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->hasPermission('create_categories');
     }
 
     /**
@@ -37,7 +45,7 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
-        return false;
+        return $this->hasCategoryPermission($user, $category, 'edit_categories');
     }
 
     /**
@@ -45,7 +53,7 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return false;
+        return $this->hasCategoryPermission($user, $category, 'delete_categories');
     }
 
     /**
@@ -53,7 +61,7 @@ class CategoryPolicy
      */
     public function restore(User $user, Category $category): bool
     {
-        return false;
+        return $this->hasCategoryPermission($user, $category, 'edit_categories');
     }
 
     /**
@@ -61,6 +69,21 @@ class CategoryPolicy
      */
     public function forceDelete(User $user, Category $category): bool
     {
-        return false;
+        return $this->hasCategoryPermission($user, $category, 'delete_categories');
+    }
+
+    private function hasCategoryPermission(User $user, Category $category, string $permissionName): bool
+    {
+        if ($user->hasPermission($permissionName)) {
+            return true;
+        }
+
+        return \App\Models\UserCategoryPermission::query()
+            ->where('user_id', $user->id)
+            ->where('category_id', $category->id)
+            ->whereHas('permission', function ($q) use ($permissionName) {
+                $q->where('name', $permissionName);
+            })
+            ->exists();
     }
 }

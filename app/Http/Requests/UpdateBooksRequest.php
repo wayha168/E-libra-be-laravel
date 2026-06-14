@@ -20,7 +20,12 @@ class UpdateBooksRequest extends FormRequest
             'author_id' => ['nullable', 'uuid', 'exists:authors,id'],
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'image_id' => ['nullable', 'uuid', 'exists:images,id'],
+            'public_date' => ['nullable', 'date'],
             'image_file' => ['nullable', 'image', 'max:5120'],
+            'image_files' => ['nullable', 'array'],
+            'image_files.*' => ['image', 'max:5120'],
+            'pdf_file' => ['nullable', 'mimes:pdf', 'max:10240'],
+            'price' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

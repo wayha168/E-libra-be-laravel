@@ -1,6 +1,9 @@
-import { ensureApiToken, isProbablyToken } from "../shared/token.js";
+import { ensureApiToken, isProbablyToken } from "../../shared/token.js";
+import { fetchJson } from "../../shared/api.js";
 
-if (document.getElementById("id") && !document.getElementById("bookCount")) {
+export function initHomePage() {
+    if (!document.getElementById("homePage")) return;
+
     const loading = document.getElementById("loading");
     const profile = document.getElementById("profile");
     const errorBox = document.getElementById("error");
@@ -24,13 +27,7 @@ if (document.getElementById("id") && !document.getElementById("bookCount")) {
                 return;
             }
 
-            const res = await fetch("/api/v1/me", {
-                headers: {
-                    Accept: "application/json",
-                    Authorization: "Bearer " + token,
-                },
-            });
-            const data = await res.json().catch(() => null);
+            const { res, data } = await fetchJson("/api/v1/me", { token });
 
             if (!res.ok) {
                 if ([401, 403].includes(res.status)) {
@@ -54,7 +51,7 @@ if (document.getElementById("id") && !document.getElementById("bookCount")) {
 
             if (loading) loading.classList.add("hidden");
             if (profile) profile.classList.remove("hidden");
-        } catch (e) {
+        } catch {
             showError("Network error. Please try again.");
         }
     })();

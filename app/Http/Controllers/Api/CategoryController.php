@@ -12,7 +12,7 @@ class CategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Category::query();
+        $query = Category::query()->withCount('books');
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();

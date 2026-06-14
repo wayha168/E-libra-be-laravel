@@ -7,11 +7,50 @@ use Illuminate\Database\Seeder;
 
 class BooksSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
-        //
+        $categoryIds = \App\Models\Category::query()->pluck('id')->values()->all();
+        $authorIds = \App\Models\Author::query()->pluck('id')->values()->all();
+        $imageIds = \App\Models\Image::query()->pluck('id')->values()->all();
+
+        // Ensure we don't seed books with null author_id (your UI expects an author relation).
+        // If authors are missing, don't create invalid book rows.
+        if (count($authorIds) === 0) {
+            return;
+        }
+
+        $firstAuthorId = $authorIds[0];
+        $firstCategoryId = $categoryIds[0] ?? null;
+        $firstImageId = $imageIds[0] ?? null;
+
+        $authorsCount = count($authorIds);
+        $categoriesCount = count($categoryIds);
+        $imagesCount = count($imageIds);
+
+        $titles = [
+            'Laravel in Action', 'JavaScript Patterns', 'Science of Learning', 'Mystery of the Code',
+            'PHP Deep Dive', 'Modern Web APIs', 'Data Structures', 'Creative Writing 101',
+        ];
+
+        for ($i = 1; $i <= 25; $i++) {
+            $authorId = $authorIds[$i % $authorsCount] ?? $firstAuthorId;
+            $categoryId = $categoriesCount > 0 ? ($categoryIds[$i % $categoriesCount] ?? $firstCategoryId) : null;
+            $imageId = $imagesCount > 0 ? ($imageIds[$i % $imagesCount] ?? $firstImageId) : null;
+            $title = $titles[($i - 1) % count($titles)] . ' #' . $i;
+            $isPaid = $i % 4 !== 0;
+
+            \App\Models\Books::query()->updateOrCreate(
+                ['title' => $title],
+                [
+                    'description' => 'Sample description for ' . $title . '. Explore topics with practical examples and exercises.',
+                    'author_id' => $authorId,
+                    'category_id' => $categoryId,
+                    'image_id' => $imageId,
+                    'price' => $isPaid ? round(4.99 + ($i % 10) * 1.5, 2) : 0,
+                    'public_date' => $i % 3 === 0 ? null : now()->subDays($i)->toDateString(),
+                ]
+            );
+        }
     }
 }

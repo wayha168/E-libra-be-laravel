@@ -15,39 +15,27 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserRoleSeeder::class,
+            PermissionSeeder::class,
+            ImageSeeder::class,
+            CategorySeeder::class,
         ]);
 
+        $this->seedDefaultUsers();
+
+        $this->call([
+            AuthorSeeder::class,
+            BooksSeeder::class,
+            TemplateDataSeeder::class,
+        ]);
+    }
+
+    private function seedDefaultUsers(): void
+    {
         $seedUsers = [
-            [
-                'name' => 'Super Admin',
-                'email' => 'superadmin@elibra.com',
-                'role' => 'super_admin',
-                'password' => bcrypt('password'),
-                'confirm_password' => bcrypt('password'),
-
-            ],
-            [
-                'name' => 'Admin',
-                'email' => 'admin@elibra.com',
-                'role' => 'admin',
-                'password' => bcrypt('password'),
-                'confirm_password' => bcrypt('password'),
-
-            ],
-            [
-                'name' => 'Author',
-                'email' => 'author@elibra.com',
-                'role' => 'author',
-                'password' => bcrypt('password'),
-                'confirm_password' => bcrypt('password'),
-            ],
-            [
-                'name' => 'User',
-                'email' => 'user@elibra.com',
-                'role' => 'user',
-                'password' => bcrypt('password'),
-                'confirm_password' => bcrypt('password'),
-            ],
+            ['name' => 'Super Admin', 'email' => 'superadmin@elibra.com', 'role' => 'super_admin'],
+            ['name' => 'Admin', 'email' => 'admin@elibra.com', 'role' => 'admin'],
+            ['name' => 'Author', 'email' => 'author@elibra.com', 'role' => 'author'],
+            ['name' => 'Reader User', 'email' => 'user@elibra.com', 'role' => 'user'],
         ];
 
         foreach ($seedUsers as $u) {
@@ -58,8 +46,10 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $u['name'],
                     'role_id' => $roleId,
-                    'password' => $u['password'],
-                    'confirm_password' => $u['confirm_password'],
+                    'password' => bcrypt('password'),
+                    'confirm_password' => bcrypt('password'),
+                    'status' => 'active',
+                    'user_subscribe' => false,
                 ]
             );
         }

@@ -3,7 +3,7 @@
 @section('title', config('app.name', 'e-Libra') . ' - Home')
 
 @section('content')
-<div class="max-w-5xl mx-auto">
+<div id="homePage" class="max-w-5xl mx-auto">
     <div class="flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Dashboard</h1>

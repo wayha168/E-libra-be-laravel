@@ -28,7 +28,13 @@ class WebAuthController
             return response()->json(['message' => 'Invalid token'], 401);
         }
 
-        Auth::login($user);
+        // Block role "user" from establishing a dashboard session
+        if (method_exists($user, 'isUser') && $user->isUser()) {
+            return response()->json(['message' => 'Insufficient access rights'], 403);
+        }
+
+        Auth::guard('web')->login($user);
+
         $request->session()->regenerate();
 
         return response()->json(['message' => 'Session established']);

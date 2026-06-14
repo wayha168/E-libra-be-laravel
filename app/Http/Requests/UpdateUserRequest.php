@@ -25,6 +25,8 @@ class UpdateUserRequest extends FormRequest
             'role_id' => ['required', 'uuid', 'exists:user_roles,id'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'image_file' => ['nullable', 'image', 'max:5120'],
+            'payway_account' => ['nullable', 'string', 'max:255'],
+            'bakong_account' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
