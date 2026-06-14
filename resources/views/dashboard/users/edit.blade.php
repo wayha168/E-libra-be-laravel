@@ -71,6 +71,21 @@
             <input type="file" name="image_file" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
         </div>
 
+        <div class="pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Payout Accounts</h3>
+            <p class="text-xs text-gray-500 mb-3">PayWay or Bakong for authors / book owners (optional, leave blank if not set)</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">PayWay Account</label>
+                    <input name="payway_account" value="{{ old('payway_account', $user->payway_account) }}" placeholder="Leave blank" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10" />
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Bakong Account</label>
+                    <input name="bakong_account" value="{{ old('bakong_account', $user->bakong_account) }}" placeholder="Leave blank" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10" />
+                </div>
+            </div>
+        </div>
+
         <div class="flex gap-2">
             <a href="{{ route('dashboard.users.show', $user) }}" class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</a>
             <button class="px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition" type="submit">Update</button>

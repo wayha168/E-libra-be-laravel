@@ -59,10 +59,10 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">Cover Image</label>
-                <input type="file" name="image_file" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                <p class="text-xs text-gray-500 mt-1">Optional book cover image.</p>
+            <div class="md:col-span-2">
+                <label class="block text-sm text-gray-600 mb-1">Book Images</label>
+                <input type="file" name="image_files[]" accept="image/*" multiple class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                <p class="text-xs text-gray-500 mt-1">Upload one or more images for this book. The first image is used as the cover.</p>
             </div>
 
             <div>

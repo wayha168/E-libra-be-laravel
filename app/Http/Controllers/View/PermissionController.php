@@ -16,12 +16,28 @@ class PermissionController
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
-            $query->where('display_name', 'like', "%{$search}%");
+            $like = "%{$search}%";
+            $query->where(function ($q) use ($like) {
+                $q->where('display_name', 'like', $like)
+                    ->orWhere('name', 'like', $like)
+                    ->orWhere('description', 'like', $like);
+            });
         }
 
-        $permissions = $query->latest()->paginate(10);
+        $permissions = $query->latest()->paginate(10)->withQueryString();
         $roles = Role::orderBy('role')->get();
-        $users = User::with(['role.permissions', 'profileImage'])->latest()->paginate(10, ['*'], 'users_page');
+
+        $userQuery = User::with(['role.permissions', 'profileImage']);
+        if ($request->filled('user_search')) {
+            $userSearch = $request->string('user_search')->toString();
+            $like = "%{$userSearch}%";
+            $userQuery->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like);
+            });
+        }
+
+        $users = $userQuery->latest()->paginate(10, ['*'], 'users_page')->withQueryString();
 
         return view('dashboard.permissions.index', compact('permissions', 'roles', 'users'));
     }

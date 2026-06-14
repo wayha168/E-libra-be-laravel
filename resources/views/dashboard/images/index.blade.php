@@ -18,10 +18,10 @@
     @endif
 
     <div class="mb-4 flex gap-2 items-center justify-end">
-        <form method="GET" action="{{ route('dashboard.images.index') }}" class="flex gap-2">
-            <input name="search" value="{{ request('search') }}" class="border rounded px-3 py-2" placeholder="Search" />
-            <button class="px-3 py-2 bg-black text-white rounded" type="submit">Search</button>
-        </form>
+        <x-search-filter
+            :action="route('dashboard.images.index')"
+            placeholder="Search URL, alt text, or type…"
+        />
     </div>
 
     <div class="overflow-auto border rounded">

@@ -42,10 +42,11 @@
     <div class="mb-8">
         <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold">All Permissions</h2>
-            <form method="GET" action="{{ route('dashboard.permissions.index') }}" class="flex gap-2">
-                <input name="search" value="{{ request('search') }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/10" placeholder="Search permissions…" />
-                <button class="px-3 py-2 bg-black text-white rounded-lg text-sm" type="submit">Search</button>
-            </form>
+            <x-search-filter
+                :action="route('dashboard.permissions.index')"
+                placeholder="Search permissions…"
+                :preserve="['user_search' => request('user_search')]"
+            />
         </div>
 
         <div class="overflow-auto border border-gray-200 rounded-xl bg-white">
@@ -104,7 +105,15 @@
 
     {{-- Users & Their Permissions --}}
     <div>
-        <h2 class="text-lg font-semibold mb-3">User Permission Overview</h2>
+        <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h2 class="text-lg font-semibold">User Permission Overview</h2>
+            <x-search-filter
+                :action="route('dashboard.permissions.index')"
+                search-name="user_search"
+                placeholder="Search users by name or email…"
+                :preserve="['search' => request('search')]"
+            />
+        </div>
         <div class="overflow-auto border border-gray-200 rounded-xl bg-white">
             <table class="min-w-full text-sm">
                 <thead class="bg-gray-50/80">

@@ -15,10 +15,14 @@
     <div class="mt-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-800 text-sm">{{ session('success') }}</div>
     @endif
 
-    @if(!isset($authors) || $authors->count() === 0)
-    <div class="mt-4 rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 text-sm">No authors found.</div>
-    @else
-    <div class="mt-4 overflow-auto border rounded">
+    <div class="mt-4 mb-4 flex items-center justify-end">
+        <x-search-filter
+            :action="route('dashboard.authors.index')"
+            placeholder="Search name, email, or bio…"
+        />
+    </div>
+
+    <div class="overflow-auto border rounded">
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
@@ -31,9 +35,9 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($authors as $author)
+                @forelse($authors as $author)
                 <tr class="border-t">
-                    <td class="px-4 py-2">{{ $author->id }}</td>
+                    <td class="px-4 py-2"><x-short-id :value="$author->id" /></td>
                     <td class="px-4 py-2">
                         <div class="font-semibold">{{ $author->user->name ?? 'Author' }}</div>
                         @if($author->user && $author->user->email)
@@ -50,7 +54,7 @@
                         <span class="text-gray-400">-</span>
                         @endif
                     </td>
-                    <td class="px-4 py-2">{{ $author->books_count ?? $author->books->count() }}</td>
+                    <td class="px-4 py-2">{{ $author->books_count ?? 0 }}</td>
                     <td class="px-4 py-2">
                         <x-table-actions
                             :view-url="route('dashboard.authors.show', $author)"
@@ -59,12 +63,15 @@
                             delete-confirm="Delete this author?" />
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-400">No authors found.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
     <div class="mt-4">{{ $authors->links() }}</div>
-    @endif
 </div>
 @endsection

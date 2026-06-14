@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\View;
 
+use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
@@ -23,13 +24,19 @@ class CategoryController
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
-            $query->where('name', 'like', "%{$search}%");
+            $like = "%{$search}%";
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                    ->orWhere('slug', 'like', $like)
+                    ->orWhere('description', 'like', $like);
+            });
         }
 
         $categories = $query
             ->with(['image', 'bannerImage'])
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
 
         return view('dashboard.categories.index', compact('categories'));
@@ -48,6 +55,8 @@ class CategoryController
 
         $data = $request->validated();
         Category::create($data);
+
+        DashboardOverviewController::broadcastStats();
 
         return redirect()->route('dashboard.categories.index')->with('success', 'Category created successfully');
     }

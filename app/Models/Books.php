@@ -20,6 +20,12 @@ class Books extends Model
         'public_date',
         'price',
         'pdf_file',
+        'pdf_preview_path',
+    ];
+
+    protected $hidden = [
+        'pdf_file',
+        'pdf_preview_path',
     ];
 
     protected $casts = [
@@ -40,5 +46,46 @@ class Books extends Model
     public function image()
     {
         return $this->belongsTo(Image::class, 'image_id', 'id');
+    }
+
+    public function images()
+    {
+        return $this->belongsToMany(Image::class, 'book_images', 'book_id', 'image_id')
+            ->withPivot(['sort_order'])
+            ->orderBy('book_images.sort_order')
+            ->withTimestamps();
+    }
+
+    public function galleryImages()
+    {
+        if ($this->relationLoaded('images') && $this->images->isNotEmpty()) {
+            return $this->images;
+        }
+
+        if ($this->image) {
+            return collect([$this->image]);
+        }
+
+        return collect();
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(BookLike::class, 'book_id', 'id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(BookComment::class, 'book_id', 'id');
+    }
+
+    public function purchases()
+    {
+        return $this->hasMany(UserBuyBook::class, 'book_id', 'id');
+    }
+
+    public function paidPurchases()
+    {
+        return $this->hasMany(UserBuyBook::class, 'book_id', 'id')->where('status', 'paid');
     }
 }

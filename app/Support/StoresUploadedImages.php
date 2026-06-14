@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Image;
+use App\Models\Books;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -24,6 +25,52 @@ class StoresUploadedImages
         ]);
 
         return $image->id;
+    }
+
+    /**
+     * @return list<string> Image UUIDs
+     */
+    public static function storeMany(array $files, string $type = 'general', ?string $alt = null): array
+    {
+        $ids = [];
+
+        foreach ($files as $file) {
+            if (!$file instanceof UploadedFile) {
+                continue;
+            }
+
+            $id = self::store($file, $type, $alt);
+            if ($id) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    public static function attachToBook(Books $book, array $imageIds): void
+    {
+        $imageIds = array_values(array_filter($imageIds));
+        if ($imageIds === []) {
+            return;
+        }
+
+        $startOrder = (int) ($book->images()->max('sort_order') ?? 0);
+
+        foreach ($imageIds as $offset => $imageId) {
+            if ($book->images()->where('images.id', $imageId)->exists()) {
+                continue;
+            }
+
+            $book->images()->attach($imageId, [
+                'id' => (string) Str::uuid(),
+                'sort_order' => $startOrder + $offset + 1,
+            ]);
+        }
+
+        if (!$book->image_id) {
+            $book->update(['image_id' => $imageIds[0]]);
+        }
     }
 
     public static function replaceFile(Image $image, UploadedFile $file, string $type = 'general', ?string $alt = null): void

@@ -22,7 +22,7 @@ class CategoryUserPermissionController
         app('Illuminate\\Contracts\\Auth\\Access\\Gate')->authorize('update', $category);
 
         // Users selectable
-        $users = User::query()->orderBy('name')->get();
+        $users = User::query()->with('role')->orderBy('name')->get();
 
         // We need which category-related permissions exist.
         // Convention: permissions.name uses snake_case like view_categories/create_categories etc.
@@ -42,8 +42,10 @@ class CategoryUserPermissionController
             ->groupBy('user_id');
 
         $selectedPermissionIdsByUser = [];
+        $selectedUserIds = [];
         foreach ($selected as $userId => $rows) {
             $selectedPermissionIdsByUser[(string) $userId] = $rows->pluck('permission_id')->all();
+            $selectedUserIds[] = (string) $userId;
         }
 
         return view('dashboard.categories.permissions.edit', [
@@ -51,6 +53,7 @@ class CategoryUserPermissionController
             'users' => $users,
             'permissions' => $permissions,
             'selectedPermissionIdsByUser' => $selectedPermissionIdsByUser,
+            'selectedUserIds' => $selectedUserIds,
         ]);
     }
 

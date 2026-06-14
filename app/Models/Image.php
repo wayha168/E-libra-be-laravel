@@ -41,4 +41,9 @@ class Image extends Model
     {
         return $this->hasMany(Books::class, 'image_id', 'id');
     }
+
+    public function bookGalleries()
+    {
+        return $this->belongsToMany(Books::class, 'book_images', 'image_id', 'book_id');
+    }
 }

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-semibold mb-4">Permission #{{ substr($permission->id, 0, 3) }}...</h1>
+    <h1 class="text-2xl font-semibold mb-4">Permission <x-short-id :value="$permission->id" /></h1>
 
     <div class="space-y-3">
         <div>

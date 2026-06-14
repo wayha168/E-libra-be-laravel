@@ -13,6 +13,10 @@ class CategoryPolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin()) {
+            return true;
+        }
+
         return $user->hasPermission('view_categories');
     }
 
@@ -21,6 +25,10 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
+        if ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin()) {
+            return true;
+        }
+
         return $this->hasCategoryPermission($user, $category, 'view_categories');
     }
 

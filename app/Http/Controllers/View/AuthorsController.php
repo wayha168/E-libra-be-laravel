@@ -8,6 +8,7 @@ use App\Models\Author;
 use App\Models\Books;
 use App\Models\Image;
 use App\Models\User;
+use App\Support\AuthorEarnings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,13 +18,22 @@ class AuthorsController
 {
     use AuthorizesRequests;
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $authors = Author::query()
+        $query = Author::query()
             ->with(['user', 'image'])
-            ->withCount('books')
-            ->latest('created_at')
-            ->paginate(10);
+            ->withCount('books');
+
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $like = "%{$search}%";
+            $query->where(function ($q) use ($like) {
+                $q->where('bio', 'like', $like)
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', $like)->orWhere('email', 'like', $like));
+            });
+        }
+
+        $authors = $query->latest('created_at')->paginate(10)->withQueryString();
 
         return view('dashboard.authors.index', compact('authors'));
     }
@@ -45,9 +55,13 @@ class AuthorsController
 
     public function show(Author $author): View
     {
-        $author->load(['user', 'image', 'books' => fn($q) => $q->latest()->limit(10)]);
+        $author->load(['user', 'image', 'books' => fn ($q) => $q->latest()->limit(10)]);
 
-        return view('dashboard.authors.show', compact('author'));
+        $earnings = $author->user
+            ? AuthorEarnings::forUser($author->user)
+            : AuthorEarnings::forAuthorId($author->id);
+
+        return view('dashboard.authors.show', compact('author', 'earnings'));
     }
 
     public function edit(Author $author): View
@@ -88,7 +102,8 @@ class AuthorsController
         $books = $query
             ->with(['category', 'image'])
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('dashboard.authors.books', compact('author', 'books'));
     }

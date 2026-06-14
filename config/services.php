@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET_KEY'),
+        'public' => env('STRIPE_PUBLIC_KEY'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'currency' => env('STRIPE_CURRENCY', 'usd'),
+        'subscription_amount' => env('STRIPE_SUBSCRIPTION_AMOUNT', 9.99),
+        'success_url' => env('STRIPE_SUCCESS_URL', env('APP_URL', 'http://localhost') . '/profile?payment=success'),
+        'cancel_url' => env('STRIPE_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled'),
+        'khqr_enabled' => env('STRIPE_KHQR_ENABLED', true),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI', env('APP_URL', 'http://localhost') . '/login'),
+    ],
+
 ];

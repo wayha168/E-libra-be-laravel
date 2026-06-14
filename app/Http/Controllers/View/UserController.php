@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\View;
 
+use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\AuthorEarnings;
 use App\Support\StoresUploadedImages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,7 +29,7 @@ class UserController
             });
         }
 
-        $users = $query->latest()->paginate(10);
+        $users = $query->latest()->paginate(10)->withQueryString();
 
         return view('dashboard.users.index', compact('users'));
     }
@@ -58,14 +60,51 @@ class UserController
             'profile_image_id' => $imageId,
         ]);
 
+        DashboardOverviewController::broadcastStats();
+
         return redirect()->route('dashboard.users.index')->with('success', 'User created successfully');
     }
 
     public function show(User $user): View
     {
-        $user->load(['role', 'profileImage']);
+        $user->load(['role.permissions', 'profileImage', 'authorProfile.books.category']);
 
-        return view('dashboard.users.show', compact('user'));
+        $purchases = $user->bookPurchases()
+            ->with('book:id,title,price,author_id')
+            ->latest()
+            ->get();
+
+        $comments = $user->bookComments()
+            ->with('book:id,title')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $authorEarnings = AuthorEarnings::forUser($user);
+
+        $authorSales = collect($authorEarnings['sales'] ?? []);
+
+        $activityStats = [
+            'subscription' => (bool) $user->user_subscribe,
+            'books_purchased' => $purchases->where('status', 'paid')->count(),
+            'total_spent' => (float) $purchases->where('status', 'paid')->sum('amount'),
+            'pending_orders' => $purchases->where('status', 'pending')->count(),
+            'books_authored' => $user->authorProfile?->books()->count() ?? 0,
+            'author_sales' => $authorEarnings['sales_count'],
+            'gross_revenue' => $authorEarnings['gross_revenue'],
+            'platform_fee_total' => $authorEarnings['platform_fee_total'],
+            'author_earnings' => $authorEarnings['net_earnings'],
+            'comments_count' => $user->bookComments()->count(),
+        ];
+
+        return view('dashboard.users.show', compact(
+            'user',
+            'purchases',
+            'comments',
+            'authorSales',
+            'authorEarnings',
+            'activityStats',
+        ));
     }
 
     public function edit(User $user): View
@@ -85,6 +124,8 @@ class UserController
             'email' => $data['email'],
             'role_id' => $data['role_id'],
             'status' => $data['status'],
+            'payway_account' => $data['payway_account'] ?? null,
+            'bakong_account' => $data['bakong_account'] ?? null,
         ];
 
         if (!empty($data['password'])) {

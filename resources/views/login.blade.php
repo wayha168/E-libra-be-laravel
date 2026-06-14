@@ -41,6 +41,13 @@
                         <span id="btnSpinner" class="hidden" aria-hidden="true">⏳</span>
                     </button>
 
+                    <div class="relative py-1">
+                        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                        <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-gray-400">or</span></div>
+                    </div>
+
+                    <div id="googleSignInHost" class="w-full flex justify-center min-h-[44px]"></div>
+
                     <div id="errorBox" class="hidden rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2.5 text-xs"></div>
                 </form>
 

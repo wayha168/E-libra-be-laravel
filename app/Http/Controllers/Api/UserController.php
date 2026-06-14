@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Books;
+use App\Support\AuthorEarnings;
+use App\Models\UserBuyBook;
+use App\Services\StripePaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,24 +29,32 @@ class UserController extends Controller
 
     public function profile(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['role.permissions']);
+        $user = $request->user()->load(['role.permissions', 'authorProfile']);
 
-        return response()->json([
+        $payload = [
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->display_role,
                 'books_count' => $user->authorProfile?->books()->count() ?? 0,
                 'user_subscribe' => (bool) $user->user_subscribe,
+                'payway_account' => $user->payway_account,
+                'bakong_account' => $user->bakong_account,
             ],
-            'permissions' => $user->role->permissions->map(fn($p) => [
+            'permissions' => $user->role?->permissions->map(fn ($p) => [
                 'name' => $p->name,
                 'display_name' => $p->display_name,
-            ])->toArray(),
-        ]);
+            ])->toArray() ?? [],
+        ];
+
+        if ($user->authorProfile || $user->isAuthor()) {
+            $payload['author_earnings'] = AuthorEarnings::forUser($user);
+        }
+
+        return response()->json($payload);
     }
 
-    public function subscribe(Request $request): JsonResponse
+    public function subscribe(Request $request, StripePaymentService $stripe): JsonResponse
     {
         $user = $request->user();
 
@@ -57,30 +67,45 @@ class UserController extends Controller
             ]);
         }
 
-        $user->user_subscribe = true;
-        $user->save();
+        if (!$stripe->isConfigured()) {
+            $user->user_subscribe = true;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Subscribed successfully',
+                'data' => [
+                    'user_subscribe' => true,
+                ],
+            ]);
+        }
+
+        $session = $stripe->createSubscriptionCheckoutSession($user);
 
         return response()->json([
-            'message' => 'Subscribed successfully',
+            'message' => 'Stripe checkout session created for subscription',
             'data' => [
-                'user_subscribe' => true,
+                'checkout_session_id' => $session->id,
+                'checkout_url' => $session->url,
+                'stripe_public_key' => config('services.stripe.public'),
+                'subscription_amount' => (float) config('services.stripe.subscription_amount', 9.99),
             ],
-        ]);
+        ], 201);
     }
 
     public function purchases(Request $request): JsonResponse
     {
         $user = $request->user();
-        $purchasedBooks = Books::whereIn('id', function ($query) use ($user) {
-            $query->select('book_id')
-                ->from('users_buys_book')
-                ->where('user_id', $user->id)
-                ->where('status', 'paid');
-        })->latest()->get();
+
+        $records = UserBuyBook::query()
+            ->with(['book:id,title,price,category_id,description,image_id'])
+            ->where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->latest('purchased_at')
+            ->get();
 
         return response()->json([
             'message' => 'Purchased books fetched successfully',
-            'data' => $purchasedBooks,
+            'data' => $records,
         ]);
     }
 }

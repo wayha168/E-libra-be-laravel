@@ -6,7 +6,7 @@
 <div class="mx-auto max-w-6xl">
     <div class="mb-6 flex items-center justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-semibold">Category #{{ $category->id }}</h1>
+            <h1 class="text-2xl font-semibold">Category <x-short-id :value="$category->id" /></h1>
             <p class="text-sm text-gray-500">View and manage category details.</p>
         </div>
 

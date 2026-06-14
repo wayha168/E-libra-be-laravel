@@ -28,20 +28,29 @@ class BooksSeeder extends Seeder
         $categoriesCount = count($categoryIds);
         $imagesCount = count($imageIds);
 
+        $titles = [
+            'Laravel in Action', 'JavaScript Patterns', 'Science of Learning', 'Mystery of the Code',
+            'PHP Deep Dive', 'Modern Web APIs', 'Data Structures', 'Creative Writing 101',
+        ];
+
         for ($i = 1; $i <= 25; $i++) {
             $authorId = $authorIds[$i % $authorsCount] ?? $firstAuthorId;
             $categoryId = $categoriesCount > 0 ? ($categoryIds[$i % $categoriesCount] ?? $firstCategoryId) : null;
             $imageId = $imagesCount > 0 ? ($imageIds[$i % $imagesCount] ?? $firstImageId) : null;
+            $title = $titles[($i - 1) % count($titles)] . ' #' . $i;
+            $isPaid = $i % 4 !== 0;
 
-            \App\Models\Books::query()->create([
-                'title' => 'Book ' . $i,
-                'description' => 'Description for book ' . $i,
-                'author_id' => $authorId,
-                'category_id' => $categoryId,
-                'image_id' => $imageId,
-                // public_date is nullable
-                'public_date' => $i % 3 === 0 ? null : now()->subDays($i)->toDateString(),
-            ]);
+            \App\Models\Books::query()->updateOrCreate(
+                ['title' => $title],
+                [
+                    'description' => 'Sample description for ' . $title . '. Explore topics with practical examples and exercises.',
+                    'author_id' => $authorId,
+                    'category_id' => $categoryId,
+                    'image_id' => $imageId,
+                    'price' => $isPaid ? round(4.99 + ($i % 10) * 1.5, 2) : 0,
+                    'public_date' => $i % 3 === 0 ? null : now()->subDays($i)->toDateString(),
+                ]
+            );
         }
     }
 }

@@ -5,6 +5,11 @@ namespace App\Models;
 use App\Models\Role;
 use App\Models\Author;
 use App\Models\Image;
+use App\Models\UserBuyBook;
+use App\Models\BookComment;
+use App\Models\BankAccount;
+use App\Models\AppNotification;
+use App\Models\UserActivity;
 
 use Database\Factories\UserFactory;
 
@@ -16,7 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'confirm_password', 'role_id', 'status', 'profile_image_id'])]
+#[Fillable(['name', 'email', 'password', 'confirm_password', 'role_id', 'status', 'profile_image_id', 'payway_account', 'bakong_account', 'last_seen_at', 'google_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -38,6 +43,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'user_subscribe' => 'boolean',
+            'last_seen_at' => 'datetime',
         ];
     }
 
@@ -88,5 +95,40 @@ class User extends Authenticatable
     public function getDisplayRoleAttribute(): string
     {
         return $this->role?->display_name ?? '-';
+    }
+
+    public function bookPurchases()
+    {
+        return $this->hasMany(UserBuyBook::class, 'user_id', 'id');
+    }
+
+    public function bookComments()
+    {
+        return $this->hasMany(BookComment::class, 'user_id', 'id');
+    }
+
+    public function bankAccounts()
+    {
+        return $this->hasMany(BankAccount::class);
+    }
+
+    public function appNotifications()
+    {
+        return $this->hasMany(AppNotification::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(UserActivity::class);
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdmin() || $this->isAuthor();
+    }
+
+    public function isOnline(): bool
+    {
+        return \App\Support\UserPresence::isOnline($this);
     }
 }

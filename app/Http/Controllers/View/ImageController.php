@@ -18,13 +18,15 @@ class ImageController
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
-            $query->where(function ($q) use ($search) {
-                $q->where('url', 'like', "%{$search}%")
-                    ->orWhere('alt_text', 'like', "%{$search}%");
+            $like = "%{$search}%";
+            $query->where(function ($q) use ($like) {
+                $q->where('url', 'like', $like)
+                    ->orWhere('alt_text', 'like', $like)
+                    ->orWhere('image_type', 'like', $like);
             });
         }
 
-        $images = $query->latest()->paginate(10);
+        $images = $query->latest()->paginate(10)->withQueryString();
 
         return view('dashboard.images.index', compact('images'));
     }
