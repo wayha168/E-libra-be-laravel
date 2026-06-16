@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
@@ -21,16 +21,19 @@ class RoleMiddleware
         }
 
         if (!method_exists($user, 'hasRole')) {
-            return $this->reject($request, 403, 'Insufficient access rights');
+            return $this->reject($request, 403, 'Credentials are invalid');
         }
 
-        // Routes often pass multiple roles like: role:admin,author,user
-        $roles = array_values(array_filter(array_map('trim', explode(',', $role))));
+        $roles = array_values(array_filter(array_map('trim', $roles)));
 
-        $allowed = in_array(true, array_map(fn($r) => $user->hasRole($r), $roles), true);
+        if ($roles === []) {
+            return $this->reject($request, 403, 'Credentials are invalid');
+        }
+
+        $allowed = in_array(true, array_map(fn ($role) => $user->hasRole($role), $roles), true);
 
         if (!$allowed) {
-            return $this->reject($request, 403, 'Insufficient access rights');
+            return $this->reject($request, 403, 'Credentials are invalid');
         }
 
         return $next($request);

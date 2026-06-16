@@ -190,9 +190,12 @@ export function initProfilePage() {
             return `<div class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
                 <div class="min-w-0">
                     <div class="text-sm font-medium text-gray-900 truncate">${book.title || "Book"}</div>
-                    <div class="text-xs text-gray-500">${date}</div>
+                    <div class="text-xs text-gray-500">${date} · ${record.status ? record.status : "paid"}</div>
                 </div>
-                <div class="text-sm font-semibold text-gray-900">$${amount}</div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="text-sm font-semibold text-gray-900">$${amount}</div>
+                    ${record.id ? `<a href="/dashboard/purchases/${record.id}" class="text-xs text-blue-600 hover:underline whitespace-nowrap">View details</a>` : ""}
+                </div>
             </div>`;
         }).join("");
     }

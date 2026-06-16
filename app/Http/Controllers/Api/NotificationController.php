@@ -11,14 +11,20 @@ class NotificationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $notifications = AppNotification::where('user_id', $request->user()->id)
+        $userId = $request->user()->id;
+
+        $notifications = AppNotification::where('user_id', $userId)
             ->latest()
             ->paginate(20);
+
+        $unreadCount = AppNotification::where('user_id', $userId)
+            ->whereNull('read_at')
+            ->count();
 
         return response()->json([
             'message' => 'Notifications fetched successfully',
             'data' => $notifications,
-            'unread_count' => NotificationService::unreadCount($request->user()),
+            'unread_count' => $unreadCount,
         ]);
     }
 

@@ -29,8 +29,15 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware('role:admin,super_admin')->group(function () {
                 Route::resource('users', UserController::class);
                 Route::resource('permissions', PermissionController::class);
-                Route::get('purchases', [BookPurchaseController::class, 'index'])->name('purchases.index');
             });
+
+            Route::get('purchases', [BookPurchaseController::class, 'index'])
+                ->middleware('role:admin,author,super_admin')
+                ->name('purchases.index');
+
+            Route::get('purchases/{purchase}', [BookPurchaseController::class, 'show'])
+                ->middleware('role:admin,author,super_admin')
+                ->name('purchases.show');
 
             Route::get('my-earnings', [\App\Http\Controllers\View\AuthorEarningsController::class, 'index'])
                 ->middleware('role:admin,author,super_admin')

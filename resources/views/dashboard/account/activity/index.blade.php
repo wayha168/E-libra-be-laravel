@@ -42,6 +42,15 @@
                     {{ $activity->actor?->name ?? $activity->user?->name ?? 'System' }}
                     · {{ $activity->created_at->diffForHumans() }}
                 </div>
+                @php
+                    $purchaseId = $activity->metadata['purchase_id'] ?? null;
+                    $bookId = $activity->metadata['book_id'] ?? null;
+                @endphp
+                @if($purchaseId && str_starts_with($activity->type, 'purchase.'))
+                <a href="{{ route('dashboard.purchases.show', $purchaseId) }}" class="inline-block mt-2 text-xs text-blue-600 hover:underline">View order details →</a>
+                @elseif($bookId)
+                <a href="{{ route('dashboard.books.show', $bookId) }}" class="inline-block mt-2 text-xs text-blue-600 hover:underline">View book →</a>
+                @endif
             </div>
             <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">{{ $activity->type }}</span>
         </div>

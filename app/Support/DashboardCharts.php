@@ -9,22 +9,38 @@ use App\Models\User;
 use App\Models\UserBuyBook;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardCharts
 {
     public static function build(string $period = '6m'): array
     {
-        [$start, $labels] = self::resolvePeriod($period);
+        return Cache::remember('dashboard.charts.' . $period, 120, function () use ($period) {
+            [$start, $labels] = self::resolvePeriod($period);
 
-        return [
-            'period' => $period,
-            'labels' => $labels,
-            'income' => self::incomeSeries($start, $labels, $period),
-            'user_registrations' => self::userRegistrationSeries($start, $labels, $period),
-            'purchases' => self::purchaseSeries($start, $labels, $period),
-            'library' => self::libraryBreakdown(),
-            'purchase_status' => self::purchaseStatusBreakdown(),
-        ];
+            return [
+                'period' => $period,
+                'labels' => $labels,
+                'income' => self::incomeSeries($start, $labels, $period),
+                'user_registrations' => self::userRegistrationSeries($start, $labels, $period),
+                'purchases' => self::purchaseSeries($start, $labels, $period),
+                'library' => self::libraryBreakdown(),
+                'purchase_status' => self::purchaseStatusBreakdown(),
+            ];
+        });
+    }
+
+    public static function flush(?string $period = null): void
+    {
+        if ($period) {
+            Cache::forget('dashboard.charts.' . $period);
+
+            return;
+        }
+
+        foreach (['7d', '30d', '6m', '12m'] as $key) {
+            Cache::forget('dashboard.charts.' . $key);
+        }
     }
 
     public static function authorIncomeForBooks(array $bookIds, string $period = '6m'): array

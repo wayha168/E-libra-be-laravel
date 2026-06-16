@@ -24,8 +24,10 @@ export async function initPresence() {
     const token = await ensureApiToken();
     if (!token) return;
 
-    sendHeartbeat(token).catch(() => {});
-    setInterval(() => sendHeartbeat(token).catch(() => {}), HEARTBEAT_MS);
+    const runHeartbeat = () => sendHeartbeat(token).catch(() => {});
+
+    window.setTimeout(runHeartbeat, 3000);
+    setInterval(runHeartbeat, HEARTBEAT_MS);
 
     const usersPage = document.getElementById("usersPage");
     const userShowPage = document.getElementById("userShowPage");

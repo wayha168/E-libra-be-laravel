@@ -9,9 +9,7 @@
             <h1 class="text-2xl font-semibold">{{ ($isAuthorView ?? false) ? 'My Books' : 'Books' }}</h1>
             <p class="text-sm text-gray-600">{{ ($isAuthorView ?? false) ? 'Books you have published' : 'Manage your book library' }}</p>
         </div>
-        @if(!($isAuthorView ?? false))
         <a href="{{ route('dashboard.books.create') }}" class="px-2 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition">Add Book</a>
-        @endif
     </div>
     <div class="mb-3 mt-3 flex items-center justify-end">
         <x-search-filter

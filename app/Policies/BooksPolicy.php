@@ -2,65 +2,67 @@
 
 namespace App\Policies;
 
-use Illuminate\Auth\Access\Response;
 use App\Models\Books;
 use App\Models\User;
 
 class BooksPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->isStaff() || $user->hasPermission('view_books');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Books $books): bool
     {
-        return false;
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isAuthor() && $user->authorProfile?->id === $books->author_id) {
+            return true;
+        }
+
+        return $user->hasPermission('view_books');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return false;
+        return $user->isSuperAdmin() || $user->isAdmin() || $user->hasPermission('create_books');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Books $books): bool
     {
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isAuthor() && $user->authorProfile?->id === $books->author_id) {
+            return $user->hasPermission('edit_books');
+        }
+
         return false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Books $books): bool
     {
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            return true;
+        }
+
+        if ($user->isAuthor() && $user->authorProfile?->id === $books->author_id) {
+            return $user->hasPermission('delete_books');
+        }
+
         return false;
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
     public function restore(User $user, Books $books): bool
     {
-        return false;
+        return $this->update($user, $books);
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, Books $books): bool
     {
-        return false;
+        return $this->delete($user, $books);
     }
 }

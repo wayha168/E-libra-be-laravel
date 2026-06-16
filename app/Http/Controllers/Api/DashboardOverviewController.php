@@ -154,11 +154,11 @@ class DashboardOverviewController extends Controller
     }
 
     public static function broadcastStats(): void
-
     {
+        DashboardStats::flush();
+        DashboardCharts::flush();
 
         event(new DashboardStatsUpdated(DashboardStats::collect()));
-
     }
 
 }

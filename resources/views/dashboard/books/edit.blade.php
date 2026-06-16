@@ -44,6 +44,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @if(!($isAuthorView ?? false))
             <div>
                 <label class="block text-sm text-gray-600 mb-1">Author</label>
                 <select name="author_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40">
@@ -53,6 +54,9 @@
                     @endforeach
                 </select>
             </div>
+            @else
+            <input type="hidden" name="author_id" value="{{ $book->author_id }}" />
+            @endif
 
             <div>
                 <label class="block text-sm text-gray-600 mb-1">Category</label>

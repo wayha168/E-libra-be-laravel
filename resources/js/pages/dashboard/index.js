@@ -187,12 +187,17 @@ export function initDashboardPage() {
                 ? `${p.book?.title || "Book"} · you receive $${amount}`
                 : `${p.book?.title || "Book"} · $${amount}`;
 
+            const purchaseUrl = p.id ? `/dashboard/purchases/${p.id}` : null;
+
             return `<div class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2" data-purchase-id="${p.id}">
                 <div class="min-w-0">
                     <div class="font-medium text-gray-900 truncate">${p.user?.name || "Buyer"}</div>
                     <div class="text-xs text-gray-500 truncate">${subtitle}</div>
                 </div>
-                ${scope === "admin" ? statusBadge(p.status) : `<span class="text-xs font-semibold text-green-700">$${amount}</span>`}
+                <div class="flex items-center gap-2 shrink-0">
+                    ${scope === "admin" ? statusBadge(p.status) : `<span class="text-xs font-semibold text-green-700">$${amount}</span>`}
+                    ${purchaseUrl ? `<a href="${purchaseUrl}" class="text-xs text-blue-600 hover:underline whitespace-nowrap">Details</a>` : ""}
+                </div>
             </div>`;
         }).join("");
     }
@@ -287,9 +292,10 @@ export function initDashboardPage() {
             }
 
             await loadOverview(chartPeriod?.value || "6m");
-            await loadRecommendations();
             if (loading) loading.classList.add("hidden");
             if (content) content.classList.remove("hidden");
+
+            loadRecommendations().catch(() => {});
 
             if (overviewScope !== "author") {
                 const echo = initEcho(apiToken);

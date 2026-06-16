@@ -32,6 +32,12 @@ class AuthController extends Controller
             return ApiResponses::unauthorized(ApiResponseView::INVALID_CREDENTIALS, null);
         }
 
+        if ($user->isUser()) {
+            return response()->json([
+                'message' => 'This account cannot access the dashboard. Contact an administrator.',
+            ], 403);
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return ApiResponses::ok(ApiResponseView::LOGIN_SUCCESSFUL, [

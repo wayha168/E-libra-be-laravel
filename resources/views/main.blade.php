@@ -112,6 +112,10 @@
             <div>
                 <h2 class="text-base font-semibold text-gray-900">Notifications</h2>
                 <p class="text-xs text-gray-500">Orders, recommendations &amp; alerts</p>
+                <p class="mt-1 flex items-center gap-3 text-[10px] text-gray-400">
+                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Unread</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Read</span>
+                </p>
             </div>
             <div class="flex items-center gap-2">
                 <button type="button" id="markAllReadSidebarBtn" class="text-xs text-blue-600 hover:underline">Mark all read</button>

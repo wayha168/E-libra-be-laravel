@@ -30,7 +30,7 @@ class WebAuthController
 
         // Block role "user" from establishing a dashboard session
         if (method_exists($user, 'isUser') && $user->isUser()) {
-            return response()->json(['message' => 'Insufficient access rights'], 403);
+            return response()->json(['message' => 'Credentials are invalid'], 403);
         }
 
         Auth::guard('web')->login($user);
@@ -51,6 +51,8 @@ class WebAuthController
         if (isset($user->status) && $user->status !== 'active') {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
+
+        $user->tokens()->where('name', 'api-token')->delete();
 
         $token = $user->createToken('api-token')->plainTextToken;
 

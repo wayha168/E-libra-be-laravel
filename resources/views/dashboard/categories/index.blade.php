@@ -8,7 +8,13 @@
     <div class="mt-5 flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Categories</h1>
-            <p class="text-sm text-gray-600">Browse and manage book categories</p>
+            <p class="text-sm text-gray-600">
+                @if(auth()->user()->isAuthor() && !auth()->user()->isAdmin() && !auth()->user()->isSuperAdmin())
+                    Browse categories when publishing your books
+                @else
+                    Browse and manage book categories
+                @endif
+            </p>
         </div>
 
         @can('create', App\Models\Category::class)

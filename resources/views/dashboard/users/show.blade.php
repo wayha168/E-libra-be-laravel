@@ -171,6 +171,7 @@
                         <th class="text-left px-3 py-2 text-xs text-gray-500">Admin 10%</th>
                         <th class="text-left px-3 py-2 text-xs text-gray-500">Status</th>
                         <th class="text-left px-3 py-2 text-xs text-gray-500">Date</th>
+                        <th class="text-left px-3 py-2 text-xs text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -194,6 +195,9 @@
                             ">{{ ucfirst($purchase->status) }}</span>
                         </td>
                         <td class="px-3 py-2 text-gray-500">{{ $purchase->purchased_at?->format('M d, Y H:i') ?? '—' }}</td>
+                        <td class="px-3 py-2">
+                            <x-table-actions :view-url="route('dashboard.purchases.show', $purchase)" />
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>

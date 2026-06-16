@@ -74,6 +74,51 @@
         </div>
     </div>
 
+    @if(($purchases ?? null) && $purchases->isNotEmpty())
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold">Recent Orders</h2>
+            <a href="{{ route('dashboard.purchases.index', ['search' => $book->title]) }}" class="text-xs text-blue-600 hover:underline">View all purchases →</a>
+        </div>
+        <div class="overflow-auto border border-gray-200 rounded-lg">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Buyer</th>
+                        <th class="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($purchases as $purchase)
+                    <tr>
+                        <td class="px-4 py-2">
+                            <div class="font-medium">{{ $purchase->user?->name ?? '—' }}</div>
+                            <div class="text-xs text-gray-500">{{ $purchase->user?->email ?? '' }}</div>
+                        </td>
+                        <td class="px-4 py-2 font-semibold">${{ number_format($purchase->amount ?? 0, 2) }}</td>
+                        <td class="px-4 py-2">
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                                @if($purchase->status === 'paid') bg-green-50 text-green-700
+                                @elseif($purchase->status === 'pending') bg-amber-50 text-amber-700
+                                @else bg-gray-100 text-gray-600
+                                @endif
+                            ">{{ ucfirst($purchase->status) }}</span>
+                        </td>
+                        <td class="px-4 py-2 text-gray-500">{{ $purchase->purchased_at?->format('M d, Y H:i') ?? '—' }}</td>
+                        <td class="px-4 py-2">
+                            <x-table-actions :view-url="route('dashboard.purchases.show', $purchase)" />
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     <div id="bookFeedbackRoot" data-book-id="{{ $book->id }}" data-mode="management" class="space-y-6">
         <div class="grid grid-cols-2 gap-4 max-w-md">
             <div class="bg-white rounded-xl border border-gray-200 p-5 text-center">

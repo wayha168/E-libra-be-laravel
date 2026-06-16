@@ -9,6 +9,8 @@ use App\Models\Author;
 use App\Models\Books;
 use App\Models\Category;
 use App\Models\Image;
+use App\Models\UserBuyBook;
+use App\Support\AuthorScope;
 use App\Support\BookAccess;
 use App\Support\BookPdfStorage;
 use App\Support\BookRecommendationService;
@@ -27,8 +29,8 @@ class BooksController
             ->withCount(['likes', 'comments']);
 
         $user = $request->user();
-        if ($user->isAuthor() && !$user->isAdmin() && !$user->isSuperAdmin()) {
-            $authorId = $user->authorProfile?->id;
+        if (AuthorScope::isAuthorOnly($user)) {
+            $authorId = AuthorScope::authorId($user);
             $query->where('author_id', $authorId ?? '00000000-0000-0000-0000-000000000000');
         }
 
@@ -44,23 +46,35 @@ class BooksController
         }
 
         $books = $query->latest()->paginate(10)->withQueryString();
-        $isAuthorView = $user->isAuthor() && !$user->isAdmin() && !$user->isSuperAdmin();
+        $isAuthorView = AuthorScope::isAuthorOnly($user);
 
         return view('dashboard.books.index', compact('books', 'isAuthorView'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $user = $request->user();
+        $isAuthorView = AuthorScope::isAuthorOnly($user);
+
+        if ($isAuthorView) {
+            AuthorScope::authorIdOrAbort($user);
+        }
+
         $categories = Category::orderBy('name')->get();
         $images = Image::orderBy('url')->get();
         $authors = Author::with('user')->orderBy('id')->get();
 
-        return view('dashboard.books.create', compact('categories', 'images', 'authors'));
+        return view('dashboard.books.create', compact('categories', 'images', 'authors', 'isAuthorView', 'user'));
     }
 
     public function store(StoreBooksRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $user = $request->user();
+
+        if (AuthorScope::isAuthorOnly($user)) {
+            $data['author_id'] = AuthorScope::authorIdOrAbort($user);
+        }
 
         $imageIds = [];
 
@@ -105,16 +119,38 @@ class BooksController
 
     public function show(Books $book): View
     {
+        $user = auth()->user();
+        AuthorScope::ensureOwnsBook($user, $book);
+
         $book->load(['author.user', 'category', 'image', 'images']);
         $book->loadCount(['likes', 'comments']);
 
         $hasPdf = BookAccess::hasPdf($book);
 
-        return view('dashboard.books.show', compact('book', 'hasPdf'));
+        $purchases = null;
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            $purchases = UserBuyBook::query()
+                ->with('user:id,name,email')
+                ->where('book_id', $book->id)
+                ->latest('purchased_at')
+                ->take(10)
+                ->get();
+        } elseif (AuthorScope::isAuthorOnly($user) && $book->author_id === AuthorScope::authorId($user)) {
+            $purchases = UserBuyBook::query()
+                ->with('user:id,name,email')
+                ->where('book_id', $book->id)
+                ->latest('purchased_at')
+                ->take(10)
+                ->get();
+        }
+
+        return view('dashboard.books.show', compact('book', 'hasPdf', 'purchases'));
     }
 
     public function read(Request $request, Books $book): View
     {
+        AuthorScope::ensureOwnsBook($request->user(), $book);
+
         $user = $request->user();
         BookAccess::appendAccessMeta($book, $user);
 
@@ -141,20 +177,30 @@ class BooksController
         return BookPdfStorage::streamFile($path, \Illuminate\Support\Str::slug($book->title) . '.pdf', true);
     }
 
-    public function edit(Books $book): View
+    public function edit(Request $request, Books $book): View
     {
+        AuthorScope::ensureOwnsBook($request->user(), $book);
+
         $book->load('images');
 
+        $user = $request->user();
+        $isAuthorView = AuthorScope::isAuthorOnly($user);
         $categories = Category::orderBy('name')->get();
         $images = Image::orderBy('url')->get();
         $authors = Author::with('user')->orderBy('id')->get();
 
-        return view('dashboard.books.edit', compact('book', 'categories', 'images', 'authors'));
+        return view('dashboard.books.edit', compact('book', 'categories', 'images', 'authors', 'isAuthorView', 'user'));
     }
 
     public function update(UpdateBooksRequest $request, Books $book): RedirectResponse
     {
+        AuthorScope::ensureOwnsBook($request->user(), $book);
+
         $data = $request->validated();
+
+        if (AuthorScope::isAuthorOnly($request->user())) {
+            $data['author_id'] = AuthorScope::authorIdOrAbort($request->user());
+        }
 
         $newImageIds = [];
 
@@ -193,8 +239,10 @@ class BooksController
         return redirect()->route('dashboard.books.index')->with('success', 'Book updated successfully');
     }
 
-    public function destroy(Books $book): RedirectResponse
+    public function destroy(Request $request, Books $book): RedirectResponse
     {
+        AuthorScope::ensureOwnsBook($request->user(), $book);
+
         $book->delete();
 
         return redirect()->route('dashboard.books.index')->with('success', 'Book deleted successfully');

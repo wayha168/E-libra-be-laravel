@@ -40,6 +40,10 @@ function toggleDropdown(force) {
 }
 
 async function hydrateHeader() {
+    if (document.querySelector('[data-header-hydrated="server"]')) {
+        return;
+    }
+
     const token = await ensureApiToken();
     if (!token) return;
 

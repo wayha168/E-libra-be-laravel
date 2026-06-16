@@ -1,14 +1,21 @@
 @extends('main')
 
-@section('title', 'Book Purchases')
+@section('title', ($isAuthorView ?? false) ? 'My Book Sales' : 'Book Purchases')
 
 @section('content')
 <div class="max-w-6xl mx-auto">
     <div class="flex items-center justify-between gap-3 mb-6">
         <div>
-            <h1 class="text-2xl font-semibold">Book Purchases</h1>
-            <p class="text-sm text-gray-600">Records of users who bought books via Stripe or direct purchase</p>
+            <h1 class="text-2xl font-semibold">{{ ($isAuthorView ?? false) ? 'My Book Sales' : 'Book Purchases' }}</h1>
+            <p class="text-sm text-gray-600">
+                {{ ($isAuthorView ?? false)
+                    ? 'Purchases of your published books and your income from each sale'
+                    : 'Records of users who bought books via Stripe or direct purchase' }}
+            </p>
         </div>
+        @if($isAuthorView ?? false)
+        <a href="{{ route('dashboard.earnings.index') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">View income summary</a>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
@@ -25,13 +32,20 @@
             <div class="mt-1 text-2xl font-bold text-amber-600">{{ $stats['pending'] }}</div>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
-            <div class="text-xs text-gray-500 uppercase tracking-wide">Revenue</div>
+            <div class="text-xs text-gray-500 uppercase tracking-wide">{{ ($isAuthorView ?? false) ? 'Gross Sales' : 'Revenue' }}</div>
             <div class="mt-1 text-2xl font-bold">${{ number_format($stats['revenue'], 2) }}</div>
         </div>
+        @if($isAuthorView ?? false)
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Your Net Income</div>
+            <div class="mt-1 text-2xl font-bold text-green-700">${{ number_format($stats['author_net'] ?? 0, 2) }}</div>
+        </div>
+        @else
         <div class="bg-white rounded-xl border border-gray-200 p-4">
             <div class="text-xs text-gray-500 uppercase tracking-wide">Admin Commission (10%)</div>
             <div class="mt-1 text-2xl font-bold text-purple-700">${{ number_format($stats['admin_commission'] ?? 0, 2) }}</div>
         </div>
+        @endif
     </div>
 
     <div class="mb-4 flex gap-2 flex-wrap">
@@ -55,15 +69,20 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50/80">
                 <tr>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">User</th>
+                    <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Buyer</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Book</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Amount</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Payment</th>
+                    @if(!($isAuthorView ?? false))
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Admin 10%</th>
-                    <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Author Net</th>
+                    @endif
+                    <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">{{ ($isAuthorView ?? false) ? 'Your Income' : 'Author Net' }}</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Status</th>
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Purchased At</th>
+                    @if(!($isAuthorView ?? false))
                     <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Stripe Session</th>
+                    @endif
+                    <th class="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -83,6 +102,7 @@
                             {{ $purchase->paymentMethodLabel() }}
                         </span>
                     </td>
+                    @if(!($isAuthorView ?? false))
                     <td class="px-4 py-3 text-purple-700 font-medium">
                         @if($purchase->status === 'paid' && $purchase->admin_commission_amount)
                         ${{ number_format($purchase->admin_commission_amount, 2) }}
@@ -90,6 +110,7 @@
                         -
                         @endif
                     </td>
+                    @endif
                     <td class="px-4 py-3 text-green-700 font-medium">
                         @if($purchase->status === 'paid')
                         ${{ number_format($purchase->authorEarnings(), 2) }}
@@ -106,11 +127,16 @@
                         ">{{ ucfirst($purchase->status) }}</span>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $purchase->purchased_at?->format('Y-m-d H:i') ?? '-' }}</td>
+                    @if(!($isAuthorView ?? false))
                     <td class="px-4 py-3 text-xs font-mono text-gray-400">{{ $purchase->stripe_checkout_session_id ? Str::limit($purchase->stripe_checkout_session_id, 20) : '-' }}</td>
+                    @endif
+                    <td class="px-4 py-3">
+                        <x-table-actions :view-url="route('dashboard.purchases.show', $purchase)" />
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="px-4 py-8 text-center text-gray-400">No purchase records found.</td>
+                    <td colspan="{{ ($isAuthorView ?? false) ? '8' : '10' }}" class="px-4 py-8 text-center text-gray-400">No purchase records found.</td>
                 </tr>
                 @endforelse
             </tbody>
