@@ -125,6 +125,10 @@ Route::prefix('v1')->group(function () {
 
         Route::resource('images', ImageController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
+        Route::resource('promotions', \App\Http\Controllers\Api\PromotionController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->middleware(RoleMiddleware::class . ':admin,author,super_admin');
+
 
         Route::get('/admin-only', function (Request $request) {
             \App\Http\Responses\ApiResponses::ok(

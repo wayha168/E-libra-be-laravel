@@ -22,7 +22,8 @@ class StripePaymentService
     {
         $this->initStripe();
 
-        $amountCents = (int) round($book->price * 100);
+        $effectivePrice = \App\Support\BookPricing::effectivePrice($book) ?? (float) $book->price;
+        $amountCents = (int) round($effectivePrice * 100);
 
         $params = [
             'mode' => 'payment',
@@ -101,10 +102,54 @@ class StripePaymentService
             $event = json_decode($payload, false, 512, JSON_THROW_ON_ERROR);
         }
 
-        if (($event->type ?? null) === 'checkout.session.completed') {
-            $session = $event->data->object;
-            $this->fulfillCheckoutSession($session);
+        $type = $event->type ?? null;
+
+        if ($type === 'checkout.session.completed') {
+            $this->fulfillCheckoutSession($event->data->object);
+            return;
         }
+
+        if ($type === 'checkout.session.expired') {
+            $this->markPurchaseStatusFromObject($event->data->object, 'canceled');
+            return;
+        }
+
+        if ($type === 'payment_intent.payment_failed') {
+            $this->markPurchaseStatusFromObject($event->data->object, 'failed');
+            return;
+        }
+    }
+
+    public function markPurchaseStatusFromObject(object $object, string $status): void
+    {
+        $metadata = (array) ($object->metadata ?? []);
+        $purchaseId = $metadata['purchase_id'] ?? null;
+
+        $purchase = null;
+
+        if ($purchaseId) {
+            $purchase = UserBuyBook::find($purchaseId);
+        }
+
+        if (!$purchase && !empty($object->id)) {
+            $purchase = UserBuyBook::where('stripe_checkout_session_id', $object->id)
+                ->orWhere('stripe_payment_intent_id', $object->id)
+                ->first();
+        }
+
+        if (!$purchase && !empty($object->payment_intent)) {
+            $purchase = UserBuyBook::where('stripe_payment_intent_id', $object->payment_intent)->first();
+        }
+
+        if (!$purchase || $purchase->status === 'paid') {
+            return;
+        }
+
+        $purchase->update(['status' => $status]);
+
+        $purchase = $purchase->fresh();
+        event(new PurchaseStatusUpdated($purchase));
+        \App\Http\Controllers\Api\DashboardOverviewController::broadcastStats();
     }
 
     public function fulfillCheckoutSession(object $session): void

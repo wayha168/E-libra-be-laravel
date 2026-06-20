@@ -162,10 +162,12 @@ class BooksController extends Controller
             ]);
         }
 
+        $effectivePrice = \App\Support\BookPricing::effectivePrice($book) ?? (float) $book->price;
+
         $purchase = UserBuyBook::updateOrCreate(
             ['user_id' => $user->id, 'book_id' => $book->id],
             [
-                'amount' => $book->price,
+                'amount' => $effectivePrice,
                 'payment_method' => $paymentMethod,
                 'status' => 'pending',
                 'purchased_at' => null,

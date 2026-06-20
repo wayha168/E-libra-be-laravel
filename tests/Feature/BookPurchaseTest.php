@@ -69,6 +69,7 @@ class BookPurchaseTest extends TestCase
         $user = $this->createUser([
             'name' => 'John Doe',
             'email' => 'john@example.com',
+            'trial_ends_at' => now()->subDay(),
         ]);
 
         $book = $this->seedBookWithPdf();
@@ -149,6 +150,61 @@ class BookPurchaseTest extends TestCase
         $response = $this->getJson("/api/v1/books/{$book->id}/download");
         $response->assertOk();
         $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
+    }
+
+    public function test_new_user_gets_trial_full_access(): void
+    {
+        config(['elibra.trial_days' => 7]);
+
+        $user = $this->createUser([
+            'name' => 'Trial User',
+            'email' => 'trial@example.com',
+        ]);
+
+        $this->assertNotNull($user->trial_ends_at);
+        $this->assertTrue($user->onTrial());
+
+        $book = $this->seedBookWithPdf(7.50);
+
+        $this->assertTrue(\App\Support\BookAccess::canAccessFull($user, $book));
+
+        Sanctum::actingAs($user, ['*']);
+        $this->getJson("/api/v1/books/{$book->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.has_full_access', true)
+            ->assertJsonPath('data.on_trial', true);
+
+        $this->getJson("/api/v1/books/{$book->id}/download")->assertOk();
+    }
+
+    public function test_active_promotion_discounts_purchase_amount(): void
+    {
+        $user = $this->createUser([
+            'name' => 'Promo Buyer',
+            'email' => 'promo@example.com',
+            'trial_ends_at' => now()->subDay(),
+        ]);
+
+        $book = $this->seedBookWithPdf(10.00);
+
+        \App\Models\Promotion::create([
+            'book_id' => $book->id,
+            'created_by' => $user->id,
+            'discount_percent' => 25,
+            'is_active' => true,
+        ]);
+
+        $this->assertSame(7.5, \App\Support\BookPricing::effectivePrice($book->fresh()));
+
+        Sanctum::actingAs($user, ['*']);
+        $this->postJson("/api/v1/books/{$book->id}/buy")->assertStatus(201);
+
+        $this->assertDatabaseHas('users_buys_book', [
+            'user_id' => $user->id,
+            'book_id' => $book->id,
+            'amount' => 7.5,
+            'status' => 'paid',
+        ]);
     }
 
     public function test_per_user_category_permissions_gating(): void

@@ -88,4 +88,9 @@ class Books extends Model
     {
         return $this->hasMany(UserBuyBook::class, 'book_id', 'id')->where('status', 'paid');
     }
+
+    public function promotions()
+    {
+        return $this->hasMany(Promotion::class, 'book_id', 'id');
+    }
 }

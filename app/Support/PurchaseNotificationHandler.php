@@ -25,9 +25,16 @@ class PurchaseNotificationHandler
             'amount' => $purchase->amount,
         ];
 
+        $activityLabels = [
+            'paid' => 'Book purchase completed',
+            'pending' => 'New book order',
+            'failed' => 'Book payment failed',
+            'canceled' => 'Book order canceled',
+        ];
+
         ActivityLogger::log(
             'purchase.' . $status,
-            $status === 'paid' ? 'Book purchase completed' : 'New book order',
+            $activityLabels[$status] ?? 'Book order update',
             $buyer && $book
                 ? "{$buyer->name} — {$book->title} (\${$amount})"
                 : null,
@@ -86,6 +93,46 @@ class PurchaseNotificationHandler
             self::notifyAuthor($book->author_id, 'purchase.paid', 'Book sale paid', "{$buyer->name} paid \${$amount} for \"{$book->title}\".", $meta);
 
             BookRecommendationService::notifyFromInteraction($buyer, $book, 'purchase');
+
+            TelegramNotifier::sendPurchasePaid($purchase);
+
+            return;
+        }
+
+        if ($status === 'failed' || $status === 'canceled') {
+            $isFailed = $status === 'failed';
+
+            NotificationService::send(
+                $buyer,
+                'purchase.' . $status,
+                $isFailed ? 'Payment failed' : 'Order canceled',
+                $isFailed
+                    ? "Your payment for \"{$book->title}\" could not be processed. Please try again."
+                    : "Your order for \"{$book->title}\" was canceled.",
+                $meta,
+            );
+
+            foreach (NotificationService::staffUsers() as $admin) {
+                NotificationService::send(
+                    $admin,
+                    'purchase.' . $status,
+                    $isFailed ? 'Book payment failed' : 'Book order canceled',
+                    $isFailed
+                        ? "{$buyer->name}'s payment for \"{$book->title}\" failed."
+                        : "{$buyer->name}'s order for \"{$book->title}\" was canceled.",
+                    $meta,
+                );
+            }
+
+            self::notifyAuthor(
+                $book->author_id,
+                'purchase.' . $status,
+                $isFailed ? 'Sale payment failed' : 'Sale canceled',
+                $isFailed
+                    ? "{$buyer->name}'s payment for \"{$book->title}\" failed."
+                    : "{$buyer->name}'s order for \"{$book->title}\" was canceled.",
+                $meta,
+            );
         }
     }
 

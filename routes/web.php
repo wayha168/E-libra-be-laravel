@@ -54,6 +54,9 @@ Route::middleware(['auth'])->group(function () {
             Route::resource('books', BooksController::class);
             Route::resource('categories', CategoryController::class);
 
+            Route::resource('promotions', \App\Http\Controllers\View\PromotionController::class)
+                ->except(['show']);
+
             Route::middleware('role:admin,super_admin')->group(function () {
                 Route::resource('images', ImageController::class);
                 Route::resource('authors', AuthorsController::class);

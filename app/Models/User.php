@@ -21,7 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'confirm_password', 'role_id', 'status', 'profile_image_id', 'payway_account', 'bakong_account', 'last_seen_at', 'google_id'])]
+#[Fillable(['name', 'email', 'password', 'confirm_password', 'role_id', 'status', 'profile_image_id', 'payway_account', 'bakong_account', 'last_seen_at', 'google_id', 'trial_ends_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -45,7 +45,33 @@ class User extends Authenticatable
             'password' => 'hashed',
             'user_subscribe' => 'boolean',
             'last_seen_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (is_null($user->trial_ends_at) && self::isTrialEligible($user)) {
+                $user->trial_ends_at = now()->addDays((int) config('elibra.trial_days', 7));
+            }
+        });
+    }
+
+    protected static function isTrialEligible(User $user): bool
+    {
+        if (!$user->role_id) {
+            return true;
+        }
+
+        $role = Role::find($user->role_id);
+
+        return !$role || $role->role === 'user';
+    }
+
+    public function onTrial(): bool
+    {
+        return $this->trial_ends_at !== null && $this->trial_ends_at->isFuture();
     }
 
     public function role()

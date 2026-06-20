@@ -48,6 +48,10 @@ class BookAccess
             return true;
         }
 
+        if (method_exists($user, 'onTrial') && $user->onTrial()) {
+            return true;
+        }
+
         return UserBuyBook::where('user_id', $user->id)
             ->where('book_id', $book->id)
             ->where('status', 'paid')
@@ -69,6 +73,16 @@ class BookAccess
         $book->has_full_access = $fullAccess;
         $book->can_preview = $paid && $hasPdf && !$fullAccess;
         $book->trial_pages = self::trialPages();
+
+        $discount = BookPricing::discountMeta($book);
+        $book->original_price = $discount['original_price'];
+        $book->effective_price = $discount['effective_price'];
+        $book->discount_percent = $discount['discount_percent'];
+        $book->on_sale = $discount['on_sale'];
+
+        $onTrial = $user && method_exists($user, 'onTrial') && $user->onTrial();
+        $book->on_trial = (bool) $onTrial;
+        $book->trial_ends_at = $onTrial ? $user->trial_ends_at : null;
         $book->preview_url = ($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null;
         $book->download_url = ($hasPdf && $fullAccess) ? url('/api/v1/books/' . $book->id . '/download') : null;
         $book->read_url = $hasPdf ? url('/dashboard/books/' . $book->id . '/read') : null;
