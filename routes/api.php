@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Controllers\Api\AuthorEarningsController;
 use App\Http\Controllers\Api\BookFeedbackController;
+use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Broadcast;
 
 
@@ -129,6 +130,20 @@ Route::prefix('v1')->group(function () {
             ->only(['index', 'store', 'update', 'destroy'])
             ->middleware(RoleMiddleware::class . ':admin,author,super_admin');
 
+
+        // ─── Chat (user ↔ admin) ─────────────────────────────────────────────
+        // User: get/create own conversation, fetch messages, send message
+        Route::get('/chat', [ChatController::class, 'userConversation']);
+        Route::get('/chat/messages', [ChatController::class, 'userMessages']);
+        Route::post('/chat/messages', [ChatController::class, 'userSend']);
+
+        // Admin: manage all conversations
+        Route::middleware(RoleMiddleware::class . ':admin,super_admin')->group(function () {
+            Route::get('/admin/chats', [ChatController::class, 'adminConversations']);
+            Route::get('/admin/chats/{conversation}', [ChatController::class, 'adminMessages']);
+            Route::post('/admin/chats/{conversation}/messages', [ChatController::class, 'adminSend']);
+            Route::post('/admin/chats/{conversation}/close', [ChatController::class, 'adminClose']);
+        });
 
         Route::get('/admin-only', function (Request $request) {
             \App\Http\Responses\ApiResponses::ok(

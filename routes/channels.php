@@ -56,3 +56,33 @@ Broadcast::channel('dashboard.presence', function ($user) {
 
 });
 
+
+
+// ─── Chat channels ────────────────────────────────────────────────────────────
+
+// Per-conversation channel: the conversation owner (user) OR an admin/super_admin
+Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
+
+    // Admin/super_admin can listen to any conversation
+    if (method_exists($user, 'isAdmin') && ($user->isAdmin() || $user->isSuperAdmin())) {
+        return true;
+    }
+
+    // Regular user can only listen to their own conversation
+    $conversation = \App\Models\ChatConversation::find($conversationId);
+
+    return $conversation && (string) $conversation->user_id === (string) $user->id;
+
+});
+
+
+
+// Admin global channel: notified when any user sends a new message
+Broadcast::channel('admin.chats', function ($user) {
+
+    return method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()
+
+        || method_exists($user, 'isAdmin') && $user->isAdmin();
+
+});
+
