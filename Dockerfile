@@ -1,10 +1,11 @@
 # Simple PHP runtime image for running Laravel
 FROM php:8.3-fpm
 
-# Install PDO MySQL + common extensions
+# Install PDO MySQL + common extensions (gd required by setasign/fpdf)
 RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev \
-    && docker-php-ext-install pdo_mysql \
+    git unzip libpng-dev libjpeg62-turbo-dev libfreetype6-dev libonig-dev libxml2-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql gd \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
@@ -22,6 +23,10 @@ COPY . .
 # Install dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
+# Link public/storage → storage/app/public (needed for file/upload UI URLs)
+RUN mkdir -p storage/app/public storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+    && php artisan storage:link --force \
+    && chmod -R 775 storage bootstrap/cache
 
 # Expose port for built-in server (used by docker.yaml)
 EXPOSE 8000

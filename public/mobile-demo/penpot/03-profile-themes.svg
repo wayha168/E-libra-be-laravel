@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" role="img" aria-label="E-Libra Profile Theme Switcher">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EEF8F1"/>
+      <stop offset="100%" stop-color="#D9F2E1"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5DCB78"/>
+      <stop offset="100%" stop-color="#248A41"/>
+    </linearGradient>
+    <filter id="blur36" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="36"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#1B6B33" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect width="390" height="844" rx="40" fill="url(#bg)"/>
+  <circle cx="40" cy="40" r="100" fill="#9FE0B4" opacity="0.5" filter="url(#blur36)"/>
+  <text x="20" y="48" font-family="Outfit, Arial, sans-serif" font-size="18" font-weight="700" fill="#14261B">Profile</text>
+  <rect x="20" y="72" width="350" height="96" rx="22" fill="#FFFFFF" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <circle cx="68" cy="120" r="32" fill="url(#brand)"/>
+  <text x="68" y="126" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">A</text>
+  <text x="116" y="112" font-family="Outfit, Arial, sans-serif" font-size="18" font-weight="700" fill="#14261B">Alex Rivera</text>
+  <text x="116" y="136" font-family="Outfit, Arial, sans-serif" font-size="12" fill="#4D6656">Green Valley High � Grade 11</text>
+  <rect x="20" y="188" width="110" height="72" rx="18" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <rect x="140" y="188" width="110" height="72" rx="18" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <rect x="260" y="188" width="110" height="72" rx="18" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <text x="75" y="222" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" font-weight="700" fill="#248A41">46</text>
+  <text x="75" y="242" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="11" fill="#7A9484">Read</text>
+  <text x="195" y="222" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" font-weight="700" fill="#248A41">8</text>
+  <text x="195" y="242" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="11" fill="#7A9484">Reviews</text>
+  <text x="315" y="222" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" font-weight="700" fill="#248A41">15</text>
+  <text x="315" y="242" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="11" fill="#7A9484">Streak</text>
+  <rect x="20" y="280" width="350" height="180" rx="20" fill="#FFFFFF" fill-opacity="0.62" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <text x="36" y="312" font-family="Outfit, Arial, sans-serif" font-size="14" font-weight="600" fill="#14261B">Color theme</text>
+  <text x="36" y="334" font-family="Outfit, Arial, sans-serif" font-size="11" fill="#7A9484">Glass look stays  pick a palette.</text>
+  <rect x="36" y="352" width="70" height="84" rx="14" fill="none" stroke="#2FAD52" stroke-width="2"/>
+  <circle cx="71" cy="382" r="18" fill="#2FAD52"/>
+  <text x="71" y="420" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" font-weight="500" fill="#4D6656">Forest</text>
+  <circle cx="155" cy="382" r="18" fill="#1F91BC"/>
+  <text x="155" y="420" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" font-weight="500" fill="#4D6656">Ocean</text>
+  <circle cx="239" cy="382" r="18" fill="#E07A3E"/>
+  <text x="239" y="420" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" font-weight="500" fill="#4D6656">Sunset</text>
+  <circle cx="323" cy="382" r="18" fill="#3DB870"/>
+  <text x="323" y="420" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" font-weight="500" fill="#4D6656">Midnight</text>
+  <rect x="20" y="480" width="350" height="48" rx="16" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65"/>
+  <text x="40" y="509" font-family="Outfit, Arial, sans-serif" font-size="14" font-weight="500" fill="#14261B">My loans</text>
+  <rect x="20" y="536" width="350" height="48" rx="16" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65"/>
+  <text x="40" y="565" font-family="Outfit, Arial, sans-serif" font-size="14" font-weight="500" fill="#14261B">My school</text>
+  <rect x="20" y="592" width="350" height="48" rx="16" fill="#FFFFFF" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.65"/>
+  <text x="40" y="621" font-family="Outfit, Arial, sans-serif" font-size="14" font-weight="500" fill="#14261B">Sign out</text>
+  <rect x="14" y="754" width="362" height="62" rx="22" fill="#FFFFFF" fill-opacity="0.78" stroke="#FFFFFF" stroke-opacity="0.65" filter="url(#shadow)"/>
+  <text x="59" y="790" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" fill="#7A9484">Home</text>
+  <text x="149" y="790" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" fill="#7A9484">Explore</text>
+  <text x="241" y="790" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" fill="#7A9484">Library</text>
+  <text x="331" y="790" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="10" font-weight="600" fill="#2FAD52">Profile</text>
+</svg>

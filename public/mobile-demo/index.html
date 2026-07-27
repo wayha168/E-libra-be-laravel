@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>E-Libra Mobile Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body data-theme="forest">
+  <div class="demo-stage">
+    <p class="demo-label"><strong>E-Libra</strong> · glassmorphism prototype · themes: Forest · Ocean · Sunset · Midnight</p>
+
+    <div class="phone" id="app">
+      <!-- LOGIN -->
+      <section class="screen active" data-screen="login" id="screen-login">
+        <div class="scroll no-nav">
+          <div class="auth-hero">
+            <div class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h1>E-Libra</h1>
+            <p>Your school library, anywhere.</p>
+          </div>
+          <div class="auth-card">
+            <h2>Welcome back</h2>
+            <p class="sub">Sign in to access your school library.</p>
+            <div class="theme-quick" aria-label="Quick theme">
+              <span class="theme-quick-label">Theme</span>
+              <div class="theme-quick-row">
+                <button class="theme-dot active" type="button" data-theme-pick="forest" title="Forest" aria-label="Forest theme"></button>
+                <button class="theme-dot" type="button" data-theme-pick="ocean" title="Ocean" aria-label="Ocean theme"></button>
+                <button class="theme-dot" type="button" data-theme-pick="sunset" title="Sunset" aria-label="Sunset theme"></button>
+                <button class="theme-dot" type="button" data-theme-pick="midnight" title="Midnight" aria-label="Midnight theme"></button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" type="email" value="alex@greenvalley.edu" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" type="password" value="password123" autocomplete="current-password" />
+            </div>
+            <div class="row-end"><button class="link" type="button" data-toast="Reset link sent to your email">Forgot password?</button></div>
+            <button class="btn btn-primary" type="button" data-go="home">Sign in</button>
+            <div class="divider">or</div>
+            <button class="btn btn-outline" type="button" data-go="home">Continue with school ID</button>
+            <p class="center-hint">New here? <button type="button" data-go="register">Create account</button></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGISTER -->
+      <section class="screen" data-screen="register" id="screen-register">
+        <div class="scroll no-nav">
+          <div class="auth-hero" style="padding-top:40px;padding-bottom:28px">
+            <div class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h1>Join E-Libra</h1>
+            <p>Create your student library account.</p>
+          </div>
+          <div class="auth-card">
+            <h2>Create account</h2>
+            <p class="sub">Use your school email to get started.</p>
+            <div class="field">
+              <label for="reg-name">Full name</label>
+              <input id="reg-name" type="text" placeholder="Alex Rivera" />
+            </div>
+            <div class="field">
+              <label for="reg-email">School email</label>
+              <input id="reg-email" type="email" placeholder="you@school.edu" />
+            </div>
+            <div class="field">
+              <label for="reg-pass">Password</label>
+              <input id="reg-pass" type="password" placeholder="At least 8 characters" />
+            </div>
+            <button class="btn btn-primary" type="button" data-go="home">Create account</button>
+            <p class="center-hint">Already have an account? <button type="button" data-go="login">Sign in</button></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOME -->
+      <section class="screen" data-screen="home" id="screen-home">
+        <div class="scroll">
+          <header class="app-header">
+            <div class="brand">
+              <div class="logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="1.8"/></svg>
+              </div>
+              <div>
+                <h1>E-Libra</h1>
+                <p>Digital Library</p>
+              </div>
+            </div>
+            <button class="avatar" type="button" data-go="profile" aria-label="Profile">A</button>
+          </header>
+
+          <div class="search-wrap">
+            <button class="search-field" type="button" data-go="search">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span>Search books, authors, schools…</span>
+            </button>
+          </div>
+
+          <div class="section">
+            <div class="section-head">
+              <h2>Schools near you</h2>
+              <button class="link" type="button" data-go="explore">Swipe →</button>
+            </div>
+            <div class="carousel" id="school-carousel">
+              <button class="school-banner" type="button" data-go="school" data-school="green-valley">
+                <span class="badge">Featured School</span>
+                <div>
+                  <h3>Green Valley High</h3>
+                  <p>1,240 books · Open now</p>
+                </div>
+              </button>
+              <button class="school-banner alt1" type="button" data-go="school" data-school="riverside">
+                <span class="badge">Featured School</span>
+                <div>
+                  <h3>Riverside Academy</h3>
+                  <p>860 books · Closes 5 PM</p>
+                </div>
+              </button>
+              <button class="school-banner alt2" type="button" data-go="school" data-school="oakwood">
+                <span class="badge">Featured School</span>
+                <div>
+                  <h3>Oakwood School</h3>
+                  <p>2,100 books · Open now</p>
+                </div>
+              </button>
+            </div>
+            <div class="dots" id="school-dots"><span class="on"></span><span></span><span></span></div>
+          </div>
+
+          <div class="section">
+            <div class="section-head"><h2>Browse categories</h2></div>
+            <div class="chips" id="home-chips">
+              <button class="chip active" type="button" data-chip="All">All</button>
+              <button class="chip" type="button" data-chip="Fiction">Fiction</button>
+              <button class="chip" type="button" data-chip="Science">Science</button>
+              <button class="chip" type="button" data-chip="History">History</button>
+              <button class="chip" type="button" data-chip="Kids">Kids</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-head">
+              <h2>Popular books</h2>
+              <button class="link" type="button" data-go="explore">See all</button>
+            </div>
+            <div class="books-row" id="home-books"></div>
+          </div>
+        </div>
+        <nav class="bottom-nav" data-active="home"></nav>
+      </section>
+
+      <!-- EXPLORE -->
+      <section class="screen" data-screen="explore" id="screen-explore">
+        <div class="scroll">
+          <div class="topbar">
+            <div class="page-title" style="text-align:left;padding-left:4px">Explore</div>
+            <button class="icon-btn" type="button" data-go="search" aria-label="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="chips section-pad" id="explore-chips" style="padding-bottom:12px">
+            <button class="chip active" type="button">Trending</button>
+            <button class="chip" type="button">New</button>
+            <button class="chip" type="button">Fiction</button>
+            <button class="chip" type="button">Science</button>
+            <button class="chip" type="button">History</button>
+          </div>
+          <div class="book-grid" id="explore-grid"></div>
+        </div>
+        <nav class="bottom-nav" data-active="explore"></nav>
+      </section>
+
+      <!-- LIBRARY -->
+      <section class="screen" data-screen="library" id="screen-library">
+        <div class="scroll">
+          <div class="topbar">
+            <div class="page-title" style="text-align:left;padding-left:4px">My Library</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><strong>12</strong><span>Borrowed</span></div>
+            <div class="stat"><strong>4</strong><span>Due soon</span></div>
+            <div class="stat"><strong>28</strong><span>Favorites</span></div>
+          </div>
+          <div class="section-head"><h2>Currently reading</h2></div>
+          <div class="list" id="library-list"></div>
+          <div class="section-head"><h2>Saved for later</h2></div>
+          <div class="books-row" id="library-saved"></div>
+        </div>
+        <nav class="bottom-nav" data-active="library"></nav>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="screen" data-screen="profile" id="screen-profile">
+        <div class="scroll">
+          <div class="topbar">
+            <div class="page-title" style="text-align:left;padding-left:4px">Profile</div>
+          </div>
+          <div class="profile-card">
+            <div class="avatar">A</div>
+            <div>
+              <h3>Alex Rivera</h3>
+              <p>Green Valley High · Grade 11</p>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><strong>46</strong><span>Read</span></div>
+            <div class="stat"><strong>8</strong><span>Reviews</span></div>
+            <div class="stat"><strong>15</strong><span>Days streak</span></div>
+          </div>
+
+          <div class="theme-panel">
+            <h3>Color theme</h3>
+            <p class="hint">Glass look stays — pick a palette that fits you.</p>
+            <div class="theme-grid" id="theme-grid" role="listbox" aria-label="Color themes">
+              <button class="theme-swatch active" type="button" data-theme-pick="forest" role="option" aria-selected="true">
+                <span class="orb" aria-hidden="true"></span>
+                <span>Forest</span>
+              </button>
+              <button class="theme-swatch" type="button" data-theme-pick="ocean" role="option" aria-selected="false">
+                <span class="orb" aria-hidden="true"></span>
+                <span>Ocean</span>
+              </button>
+              <button class="theme-swatch" type="button" data-theme-pick="sunset" role="option" aria-selected="false">
+                <span class="orb" aria-hidden="true"></span>
+                <span>Sunset</span>
+              </button>
+              <button class="theme-swatch" type="button" data-theme-pick="midnight" role="option" aria-selected="false">
+                <span class="orb" aria-hidden="true"></span>
+                <span>Midnight</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="menu-list">
+            <button class="menu-item" type="button" data-go="library"><span>My loans</span><span>›</span></button>
+            <button class="menu-item" type="button" data-go="school" data-school="green-valley"><span>My school</span><span>›</span></button>
+            <button class="menu-item" type="button" data-toast="Notifications are on"><span>Notifications</span><span>On</span></button>
+            <button class="menu-item" type="button" data-toast="Language: English"><span>Language</span><span>EN</span></button>
+            <button class="menu-item" type="button" data-go="login"><span>Sign out</span><span>›</span></button>
+          </div>
+        </div>
+        <nav class="bottom-nav" data-active="profile"></nav>
+      </section>
+
+      <!-- SEARCH -->
+      <section class="screen" data-screen="search" id="screen-search">
+        <div class="scroll no-nav">
+          <div class="topbar">
+            <button class="back-btn" type="button" data-back aria-label="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="search-field" style="flex:1">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input id="search-input" type="search" placeholder="Search books, authors…" autofocus />
+            </div>
+          </div>
+          <div class="section-head"><h2>Results</h2></div>
+          <div class="list" id="search-results"></div>
+        </div>
+      </section>
+
+      <!-- BOOK DETAIL -->
+      <section class="screen" data-screen="book" id="screen-book">
+        <div class="scroll no-nav">
+          <div class="topbar">
+            <button class="back-btn" type="button" data-back aria-label="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="page-title">Book</div>
+            <button class="icon-btn" type="button" data-toast="Saved to favorites" aria-label="Favorite">♡</button>
+          </div>
+          <div class="detail-hero">
+            <div class="detail-cover" id="book-cover">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="currentColor" stroke-width="1.8"/></svg>
+            </div>
+            <h2 id="book-title">The Quiet Forest</h2>
+            <p class="author" id="book-author">Maya Chen</p>
+            <p class="rating" id="book-rating">★ 4.8 · Fiction · 248 pages</p>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary" type="button" data-toast="Borrowed · due in 14 days">Borrow</button>
+            <button class="btn btn-outline" type="button" data-toast="Opening preview…">Preview</button>
+          </div>
+          <p class="desc" id="book-desc">A lyrical story about finding stillness in a noisy world. Follow Lena as she rediscovers wonder in the woods behind her school.</p>
+          <div class="section-head"><h2>More like this</h2></div>
+          <div class="books-row" id="book-related"></div>
+        </div>
+      </section>
+
+      <!-- SCHOOL DETAIL -->
+      <section class="screen" data-screen="school" id="screen-school">
+        <div class="scroll no-nav">
+          <div class="topbar">
+            <button class="back-btn" type="button" data-back aria-label="Back">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="page-title">School</div>
+            <span style="width:40px"></span>
+          </div>
+          <div class="school-hero" id="school-hero">
+            <span class="badge">Open now</span>
+            <h2 id="school-name">Green Valley High</h2>
+            <p id="school-meta">1,240 books · Digital library open</p>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><strong id="school-books">1240</strong><span>Books</span></div>
+            <div class="stat"><strong>86</strong><span>Students</span></div>
+            <div class="stat"><strong>12</strong><span>Rooms</span></div>
+          </div>
+          <div class="section-head"><h2>Available now</h2></div>
+          <div class="list" id="school-books-list"></div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
