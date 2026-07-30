@@ -5,19 +5,28 @@ window.Pusher = Pusher;
 Pusher.logToConsole = false;
 
 let echoInstance = null;
-let connectionFailed = false;
+let connected = false;
 
 function reverbHost() {
     const configured = import.meta.env.VITE_REVERB_HOST;
-    if (configured && configured !== "localhost") {
+    if (configured && configured !== "localhost" && configured !== "127.0.0.1") {
         return configured;
     }
 
-    return window.location.hostname || "127.0.0.1";
+    // Prefer page hostname so local WS matches the browser origin
+    return window.location.hostname || configured || "127.0.0.1";
+}
+
+export function isEchoConnected() {
+    return Boolean(echoInstance) && connected;
 }
 
 export function initEcho(token) {
-    if (!token || echoInstance || connectionFailed) {
+    if (!token) {
+        return null;
+    }
+
+    if (echoInstance) {
         return echoInstance;
     }
 
@@ -29,7 +38,7 @@ export function initEcho(token) {
     }
 
     const host = reverbHost();
-    const scheme = import.meta.env.VITE_REVERB_SCHEME || window.location.protocol.replace(":", "");
+    const scheme = import.meta.env.VITE_REVERB_SCHEME || window.location.protocol.replace(":", "") || "http";
     const port = Number(import.meta.env.VITE_REVERB_PORT || 8080);
     const forceTLS = scheme === "https";
 
@@ -42,6 +51,10 @@ export function initEcho(token) {
             wssPort: port,
             forceTLS,
             enabledTransports: ["ws", "wss"],
+            disableStats: true,
+            // Snappier dead-connection detection / reconnect
+            activityTimeout: 30_000,
+            pongTimeout: 10_000,
             authEndpoint: "/api/v1/broadcasting/auth",
             auth: {
                 headers: {
@@ -53,18 +66,29 @@ export function initEcho(token) {
 
         const connection = echoInstance.connector?.pusher?.connection;
         if (connection) {
-            connection.bind("error", () => {
-                connectionFailed = true;
+            connection.bind("connected", () => {
+                connected = true;
             });
-            connection.bind("failed", () => {
-                connectionFailed = true;
+            connection.bind("disconnected", () => {
+                connected = false;
             });
             connection.bind("unavailable", () => {
-                connectionFailed = true;
+                connected = false;
             });
+            connection.bind("failed", () => {
+                connected = false;
+            });
+            connection.bind("error", () => {
+                connected = false;
+            });
+
+            // If already connected by the time we bind
+            if (connection.state === "connected") {
+                connected = true;
+            }
         }
     } catch {
-        connectionFailed = true;
+        connected = false;
         echoInstance = null;
     }
 

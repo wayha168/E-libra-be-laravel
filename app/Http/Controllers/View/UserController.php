@@ -5,6 +5,7 @@ namespace App\Http\Controllers\View;
 use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\Author;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AuthorEarnings;
@@ -50,7 +51,7 @@ class UserController
             $data['name']
         );
 
-        User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
@@ -60,6 +61,8 @@ class UserController
             'profile_image_id' => $imageId,
         ]);
 
+        $this->ensureAuthorProfile($user, $imageId);
+
         DashboardOverviewController::broadcastStats();
 
         return redirect()->route('dashboard.users.index')->with('success', 'User created successfully');
@@ -67,7 +70,7 @@ class UserController
 
     public function show(User $user): View
     {
-        $user->load(['role.permissions', 'profileImage', 'authorProfile.books.category']);
+        $user->load(['role.permissions', 'profileImage', 'authorProfile.books.category', 'abaPaywayMerchant']);
 
         $purchases = $user->bookPurchases()
             ->with('book:id,title,price,author_id')
@@ -144,6 +147,8 @@ class UserController
 
         $user->update($payload);
 
+        $this->ensureAuthorProfile($user->fresh(), $payload['profile_image_id'] ?? $user->profile_image_id);
+
         return redirect()->route('dashboard.users.index')->with('success', 'User updated successfully');
     }
 
@@ -157,5 +162,22 @@ class UserController
         $user->delete();
 
         return redirect()->route('dashboard.users.index')->with('success', 'User deleted successfully');
+    }
+
+    private function ensureAuthorProfile(User $user, ?string $imageId = null): void
+    {
+        $user->loadMissing('role');
+
+        if (!$user->isAuthor()) {
+            return;
+        }
+
+        Author::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'image_id' => $imageId,
+                'bio' => null,
+            ]
+        );
     }
 }

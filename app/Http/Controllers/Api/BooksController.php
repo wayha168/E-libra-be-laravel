@@ -13,7 +13,9 @@ use App\Events\PurchaseStatusUpdated;
 use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Support\BookAccess;
 use App\Support\BookPdfStorage;
+use App\Support\BookPricing;
 use App\Support\BookRecommendationService;
+use App\Support\BookTrialAccess;
 use App\Support\PurchaseCommission;
 use App\Services\StripePaymentService;
 use Illuminate\Http\Request;
@@ -214,18 +216,74 @@ class BooksController extends Controller
         ], 201);
     }
 
+    public function requestAccess(Request $request, Books $book)
+    {
+        $user = $request->user();
+        $book->load(['category', 'author.user']);
+
+        if (BookAccess::canAccessFull($user, $book)) {
+            BookAccess::appendAccessMeta($book, $user);
+
+            return response()->json([
+                'message' => 'You already have full access.',
+                'code' => 'already_entitled',
+                'payment_required' => false,
+                'data' => $book,
+            ]);
+        }
+
+        $result = BookTrialAccess::claim($user, $book);
+        BookAccess::appendAccessMeta($book->fresh(['category', 'author.user']), $user);
+
+        $payload = [
+            'message' => $result['message'],
+            'code' => $result['code'],
+            'payment_required' => (bool) ($result['payment_required'] ?? false),
+            'buy_url' => url('/api/v1/books/' . $book->id . '/buy'),
+            'data' => $book,
+        ];
+
+        if (! empty($result['trial'])) {
+            $payload['trial'] = [
+                'starts_at' => $result['trial']->starts_at?->toIso8601String(),
+                'ends_at' => $result['trial']->ends_at?->toIso8601String(),
+                'days' => $result['promotion']?->resolvedTrialDays(),
+            ];
+        }
+
+        return response()->json($payload, $result['status']);
+    }
+
     public function download(Request $request, Books $book)
     {
         $user = $request->user();
 
-        if (!BookAccess::canAccessFull($user, $book)) {
+        if (! BookAccess::canAccessFull($user, $book) && $user) {
+            $claim = BookTrialAccess::claim($user, $book);
+            if (! $claim['ok']) {
+                return response()->json([
+                    'message' => $claim['message'],
+                    'code' => $claim['code'],
+                    'payment_required' => true,
+                    'buy_url' => url('/api/v1/books/' . $book->id . '/buy'),
+                    'request_access_url' => url('/api/v1/books/' . $book->id . '/request-access'),
+                    'effective_price' => BookPricing::effectivePrice($book),
+                ], 402);
+            }
+        }
+
+        if (! BookAccess::canAccessFull($user, $book)) {
             return response()->json([
-                'message' => 'You must purchase this book or subscribe to access the full PDF.',
-            ], 403);
+                'message' => 'You must purchase this book or start a free trial to access the full PDF.',
+                'code' => 'payment_required',
+                'payment_required' => true,
+                'buy_url' => url('/api/v1/books/' . $book->id . '/buy'),
+                'effective_price' => BookPricing::effectivePrice($book),
+            ], 402);
         }
 
         $path = BookPdfStorage::resolveFullPath($book);
-        if (!$path) {
+        if (! $path) {
             return response()->json([
                 'message' => 'This book does not have a PDF file available.',
             ], 404);

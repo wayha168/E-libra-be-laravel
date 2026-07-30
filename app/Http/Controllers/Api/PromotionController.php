@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Author;
 use App\Models\Books;
 use App\Models\Promotion;
+use App\Support\AuthorScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PromotionController extends Controller
@@ -15,12 +18,15 @@ class PromotionController extends Controller
         $user = $request->user();
 
         $query = Promotion::query()
-            ->with(['book:id,title,price,author_id', 'creator:id,name'])
+            ->with(['book:id,title,price,author_id', 'author.user:id,name', 'creator:id,name'])
             ->latest();
 
-        if ($this->isAuthorOnly($user)) {
-            $authorId = $user->authorProfile?->id;
-            $query->whereHas('book', fn ($q) => $q->where('author_id', $authorId));
+        if (AuthorScope::isAuthorOnly($user)) {
+            $authorId = AuthorScope::authorIdOrAbort($user);
+            $query->where(function ($q) use ($authorId) {
+                $q->where('author_id', $authorId)
+                    ->orWhereHas('book', fn ($b) => $b->where('author_id', $authorId));
+            });
         }
 
         if ($request->filled('book_id')) {
@@ -36,54 +42,35 @@ class PromotionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validatePayload($request);
+        $this->authorizePayload($request, $data);
 
-        $book = Books::findOrFail($data['book_id']);
-        $this->authorizeBook($request, $book);
-
-        $promotion = Promotion::create([
-            'book_id' => $book->id,
-            'created_by' => $request->user()->id,
-            'discount_percent' => $data['discount_percent'],
-            'starts_at' => $data['starts_at'] ?? null,
-            'ends_at' => $data['ends_at'] ?? null,
-            'is_active' => $data['is_active'] ?? true,
-        ]);
+        $promotion = Promotion::create($this->makePayload($request, $data));
 
         return response()->json([
             'message' => 'Promotion created successfully',
-            'data' => $promotion->load(['book:id,title,price,author_id', 'creator:id,name']),
+            'data' => $promotion->load(['book:id,title,price,author_id', 'author.user:id,name', 'creator:id,name']),
         ], 201);
     }
 
     public function update(Request $request, Promotion $promotion): JsonResponse
     {
-        $this->authorizeBook($request, $promotion->book);
+        $this->authorizePromotion($request, $promotion);
 
         $data = $this->validatePayload($request, $promotion);
+        $this->authorizePayload($request, $data);
 
-        if (array_key_exists('book_id', $data) && $data['book_id'] !== $promotion->book_id) {
-            $book = Books::findOrFail($data['book_id']);
-            $this->authorizeBook($request, $book);
-            $promotion->book_id = $book->id;
-        }
-
-        $promotion->fill([
-            'discount_percent' => $data['discount_percent'],
-            'starts_at' => $data['starts_at'] ?? null,
-            'ends_at' => $data['ends_at'] ?? null,
-            'is_active' => $data['is_active'] ?? $promotion->is_active,
-        ]);
+        $promotion->fill($this->makePayload($request, $data));
         $promotion->save();
 
         return response()->json([
             'message' => 'Promotion updated successfully',
-            'data' => $promotion->fresh()->load(['book:id,title,price,author_id', 'creator:id,name']),
+            'data' => $promotion->fresh()->load(['book:id,title,price,author_id', 'author.user:id,name', 'creator:id,name']),
         ]);
     }
 
     public function destroy(Request $request, Promotion $promotion): JsonResponse
     {
-        $this->authorizeBook($request, $promotion->book);
+        $this->authorizePromotion($request, $promotion);
 
         $promotion->delete();
 
@@ -96,19 +83,89 @@ class PromotionController extends Controller
     private function validatePayload(Request $request, ?Promotion $promotion = null): array
     {
         return $request->validate([
-            'book_id' => [$promotion ? 'sometimes' : 'required', 'string', 'exists:books,id'],
-            'discount_percent' => ['required', 'integer', 'min:1', 'max:90'],
+            'type' => ['required', Rule::in([Promotion::TYPE_PERCENTAGE, Promotion::TYPE_FREE_TRIAL])],
+            'scope' => ['required', Rule::in(['book', 'author'])],
+            'book_id' => ['nullable', 'string', 'exists:books,id', Rule::requiredIf(fn () => $request->input('scope') === 'book')],
+            'author_id' => ['nullable', 'string', 'exists:authors,id', Rule::requiredIf(fn () => $request->input('scope') === 'author')],
+            'discount_percent' => [
+                Rule::requiredIf(fn () => $request->input('type') === Promotion::TYPE_PERCENTAGE),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:90',
+            ],
+            'trial_days' => [
+                Rule::requiredIf(fn () => $request->input('type') === Promotion::TYPE_FREE_TRIAL),
+                'nullable',
+                'integer',
+                'min:1',
+                'max:30',
+            ],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['nullable', 'boolean'],
         ]);
     }
 
+    private function makePayload(Request $request, array $data): array
+    {
+        $isTrial = $data['type'] === Promotion::TYPE_FREE_TRIAL;
+
+        return [
+            'type' => $data['type'],
+            'book_id' => $data['scope'] === 'book' ? $data['book_id'] : null,
+            'author_id' => $data['scope'] === 'author' ? $data['author_id'] : null,
+            'created_by' => $request->user()->id,
+            'discount_percent' => $isTrial ? null : (int) $data['discount_percent'],
+            'trial_days' => $isTrial ? (int) ($data['trial_days'] ?? 7) : null,
+            'starts_at' => $data['starts_at'] ?? null,
+            'ends_at' => $data['ends_at'] ?? null,
+            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
+        ];
+    }
+
+    private function authorizePayload(Request $request, array $data): void
+    {
+        $user = $request->user();
+
+        if ($data['scope'] === 'book') {
+            $this->authorizeBook($request, Books::findOrFail($data['book_id']));
+
+            return;
+        }
+
+        if (AuthorScope::isAuthorOnly($user) && AuthorScope::authorIdOrAbort($user) !== $data['author_id']) {
+            throw ValidationException::withMessages([
+                'author_id' => 'You can only manage promotions for your own author profile.',
+            ])->status(403);
+        }
+
+        if (! Author::whereKey($data['author_id'])->exists()) {
+            throw ValidationException::withMessages(['author_id' => 'Author not found.']);
+        }
+    }
+
+    private function authorizePromotion(Request $request, Promotion $promotion): void
+    {
+        if ($promotion->book) {
+            $this->authorizeBook($request, $promotion->book);
+
+            return;
+        }
+
+        $user = $request->user();
+        if (AuthorScope::isAuthorOnly($user) && AuthorScope::authorIdOrAbort($user) !== $promotion->author_id) {
+            throw ValidationException::withMessages([
+                'author_id' => 'You can only manage your own promotions.',
+            ])->status(403);
+        }
+    }
+
     private function authorizeBook(Request $request, ?Books $book): void
     {
         $user = $request->user();
 
-        if (!$book) {
+        if (! $book) {
             abort(404, 'Book not found.');
         }
 
@@ -120,20 +177,12 @@ class PromotionController extends Controller
             return;
         }
 
-        if ($this->isAuthorOnly($user) && $user->authorProfile && $user->authorProfile->id === $book->author_id) {
+        if (AuthorScope::isAuthorOnly($user) && $user->authorProfile && $user->authorProfile->id === $book->author_id) {
             return;
         }
 
         throw ValidationException::withMessages([
             'book_id' => 'You can only manage promotions for your own books.',
         ])->status(403);
-    }
-
-    private function isAuthorOnly($user): bool
-    {
-        return method_exists($user, 'isAuthor')
-            && $user->isAuthor()
-            && !(method_exists($user, 'isAdmin') && $user->isAdmin())
-            && !(method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin());
     }
 }

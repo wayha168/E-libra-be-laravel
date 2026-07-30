@@ -208,7 +208,7 @@ export function initDashboardPage() {
 
         if (!items?.length) {
             el.innerHTML =
-                '<div class="col-span-full text-center text-gray-400 py-6">Like, review, or buy books to get personalized recommendations.</div>';
+                '<div class="col-span-full text-center text-gray-400 py-6">Buy a book to get recommendations from the same category or author.</div>';
             return;
         }
 

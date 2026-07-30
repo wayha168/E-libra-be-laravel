@@ -1,11 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="emerald" data-mode="light" data-lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>@yield('title', config('app.name', 'e-Libra'))</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('elibra-theme') || 'emerald';
+                var mode = localStorage.getItem('elibra-mode') || 'light';
+                var lang = localStorage.getItem('elibra-lang') || 'en';
+                if (!['emerald', 'ocean', 'sunset', 'violet'].includes(theme)) theme = 'emerald';
+                if (!['light', 'dark'].includes(mode)) mode = 'light';
+                if (!['en', 'km'].includes(lang)) lang = 'en';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-mode', mode);
+                document.documentElement.setAttribute('data-lang', lang);
+                document.documentElement.setAttribute('lang', lang === 'km' ? 'km' : 'en');
+            } catch (e) {}
+        })();
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         #dashboardAside {
@@ -41,13 +60,13 @@
         #dashboardAside.aside-is-collapsed #asideToggleBtn {
             width: 2.5rem;
             height: 2.5rem;
-            background: #fff;
-            border-color: #e5e7eb;
+            background: var(--surface);
+            border-color: var(--border);
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
         }
 
         #dashboardAside.aside-is-collapsed #asideToggleBtn svg {
-            color: #374151;
+            color: var(--text-secondary);
         }
 
         #dashboardAside.aside-is-collapsed .aside-brand .w-9 {
@@ -89,14 +108,21 @@
     </style>
 </head>
 
-<body class="h-screen bg-white text-[#1b1b18] overflow-hidden">
+<body
+    class="app-shell h-screen overflow-hidden"
+    @if(session('success')) data-flash-success="{{ session('success') }}" @endif
+    @if(session('error')) data-flash-error="{{ session('error') }}" @endif
+    @if(session('upload_success')) data-flash-upload-success="{{ session('upload_success') }}" @endif
+    @if(session('upload_error')) data-flash-upload-error="{{ session('upload_error') }}" @endif
+    @if($errors->any()) data-flash-validation="{{ $errors->first() }}" @endif
+>
     <div id="dashboardLayout" class="flex h-full">
         @include('components.aside')
 
         <div class="flex-1 min-w-0 flex flex-col">
             @include('components.header')
 
-            <main class="flex-1 overflow-y-auto">
+            <main class="app-main flex-1 overflow-y-auto">
                 <div class="p-6">
                     @yield('content')
                 </div>
@@ -110,24 +136,24 @@
     <aside id="notificationSidebar" class="fixed inset-y-0 right-0 w-full max-w-md bg-white border-l border-gray-200 shadow-2xl z-[70] transition-transform duration-300 ease-out flex flex-col" aria-label="Notifications panel">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-shrink-0">
             <div>
-                <h2 class="text-base font-semibold text-gray-900">Notifications</h2>
-                <p class="text-xs text-gray-500">Orders, recommendations &amp; alerts</p>
+                <h2 class="text-base font-semibold text-gray-900" data-i18n="notifications_title">Notifications</h2>
+                <p class="text-xs text-gray-500" data-i18n="notifications_sub">Orders, recommendations &amp; alerts</p>
                 <p class="mt-1 flex items-center gap-3 text-[10px] text-gray-400">
-                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Unread</span>
-                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Read</span>
+                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> <span data-i18n="unread">Unread</span></span>
+                    <span class="inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> <span data-i18n="read">Read</span></span>
                 </p>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" id="markAllReadSidebarBtn" class="text-xs text-blue-600 hover:underline">Mark all read</button>
-                <button type="button" id="notificationSidebarClose" class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 hover:bg-gray-50" aria-label="Close notifications">
+                <button type="button" id="markAllReadSidebarBtn" class="text-xs text-blue-600 hover:underline" data-i18n="mark_all_read">Mark all read</button>
+                <button type="button" id="notificationSidebarClose" class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 hover:bg-gray-50" aria-label="Close notifications" data-i18n="close_notifications" data-i18n-attr="aria-label">
                     <svg class="w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                 </button>
             </div>
         </div>
         <div id="notificationSidebarList" class="flex-1 overflow-y-auto divide-y divide-gray-100 text-sm"></div>
         <div class="px-5 py-3 border-t border-gray-100 flex-shrink-0 space-y-2">
-            <button type="button" id="notificationSeeMoreBtn" class="hidden w-full py-2 text-sm font-medium text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition">See more</button>
-            <a href="{{ route('dashboard.account.notifications.index') }}" class="block text-sm text-blue-600 hover:underline">View all notifications</a>
+            <button type="button" id="notificationSeeMoreBtn" class="hidden w-full py-2 text-sm font-medium text-center border border-gray-200 rounded-lg hover:bg-gray-50 transition" data-i18n="see_more">See more</button>
+            <a href="{{ route('dashboard.account.notifications.index') }}" class="block text-sm text-blue-600 hover:underline" data-i18n="view_all_notifications">View all notifications</a>
         </div>
     </aside>
     @endif

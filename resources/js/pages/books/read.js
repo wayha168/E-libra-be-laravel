@@ -83,8 +83,32 @@ export function initBookReadPage() {
     (async () => {
         try {
             const token = await ensureApiToken();
-            const bookData = await fetchWithToken(token, "/api/v1/books/" + bookId);
-            const book = bookData?.data || {};
+            let bookData = await fetchWithToken(token, "/api/v1/books/" + bookId);
+            let book = bookData?.data || {};
+
+            // Start free-trial promotion when user opens the reader (request access)
+            if (!book.has_full_access && (book.free_trial_available || book.request_access_url)) {
+                try {
+                    const claim = await fetch("/api/v1/books/" + bookId + "/request-access", {
+                        method: "POST",
+                        headers: {
+                            Accept: "application/json",
+                            Authorization: "Bearer " + token,
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content || "",
+                        },
+                        credentials: "same-origin",
+                    });
+                    const claimPayload = await claim.json().catch(() => null);
+                    if (claim.ok && claimPayload?.data) {
+                        book = claimPayload.data;
+                    } else if (claimPayload?.payment_required) {
+                        showError(claimPayload.message || "Please purchase this book to continue reading.");
+                        return;
+                    }
+                } catch (_) {
+                    /* fall through to preview */
+                }
+            }
 
             const fullAccess = !!book.has_full_access;
             const canPreview = !!book.can_preview;
@@ -99,7 +123,11 @@ export function initBookReadPage() {
                 url = book.preview_url;
                 useAuth = false;
             } else if (!fullAccess && (book.price || 0) > 0) {
-                showError("Subscribe or buy this book to read beyond the free preview.");
+                showError(
+                    book.trial_expired
+                        ? "Your free trial has ended. Please purchase this book to keep reading."
+                        : "Subscribe or buy this book to read beyond the free preview.",
+                );
                 return;
             } else {
                 showError("PDF is not available for this book.");

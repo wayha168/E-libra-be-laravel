@@ -51,11 +51,7 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
-        static::creating(function (User $user) {
-            if (is_null($user->trial_ends_at) && self::isTrialEligible($user)) {
-                $user->trial_ends_at = now()->addDays((int) config('elibra.trial_days', 7));
-            }
-        });
+        // Free reading is granted via free_trial promotions when the user requests access.
     }
 
     protected static function isTrialEligible(User $user): bool
@@ -136,6 +132,11 @@ class User extends Authenticatable
     public function bankAccounts()
     {
         return $this->hasMany(BankAccount::class);
+    }
+
+    public function abaPaywayMerchant()
+    {
+        return $this->hasOne(AbaPaywayMerchant::class);
     }
 
     public function appNotifications()

@@ -8,7 +8,7 @@
     <div class="mt-5 flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Promotions</h1>
-            <p class="text-sm text-gray-600">Create and manage book discounts</p>
+            <p class="text-sm text-gray-600">Percentage discounts or free trials for a book or all of an author’s books</p>
         </div>
 
         <a href="{{ route('dashboard.promotions.create') }}" class="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition">
@@ -19,7 +19,7 @@
     <div class="mb-3 mt-3 flex items-center justify-end">
         <x-search-filter
             :action="route('dashboard.promotions.index')"
-            placeholder="Search by book title…"
+            placeholder="Search book or author…"
         />
     </div>
 
@@ -33,9 +33,9 @@
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="text-left px-4 py-2">Book</th>
-                    <th class="text-left px-4 py-2">Discount</th>
-                    <th class="text-left px-4 py-2">Price</th>
+                    <th class="text-left px-4 py-2">Target</th>
+                    <th class="text-left px-4 py-2">Type</th>
+                    <th class="text-left px-4 py-2">Offer</th>
                     <th class="text-left px-4 py-2">Window</th>
                     <th class="text-left px-4 py-2">Status</th>
                     <th class="text-left px-4 py-2">Created by</th>
@@ -45,20 +45,41 @@
             <tbody>
                 @forelse($promotions as $promotion)
                 @php
-                    $price = (float) ($promotion->book->price ?? 0);
-                    $discounted = round($price * (1 - $promotion->discount_percent / 100), 2);
                     $live = $promotion->isCurrentlyActive();
+                    $isTrial = $promotion->isFreeTrial();
+                    $isAuthorScope = $promotion->author_id && ! $promotion->book_id;
+                    $target = $isAuthorScope
+                        ? ('All books · ' . ($promotion->author->user->name ?? 'Author'))
+                        : ($promotion->book->title ?? '—');
                 @endphp
                 <tr class="border-t">
-                    <td class="px-4 py-2 font-medium">{{ $promotion->book->title ?? '—' }}</td>
-                    <td class="px-4 py-2">
-                        <span class="inline-flex px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700">
-                            {{ $promotion->discount_percent }}% off
-                        </span>
+                    <td class="px-4 py-2 font-medium">
+                        {{ $target }}
+                        <div class="text-xs text-gray-500">{{ $isAuthorScope ? 'Author scope' : 'Book scope' }}</div>
                     </td>
                     <td class="px-4 py-2">
-                        <span class="text-gray-400 line-through">${{ number_format($price, 2) }}</span>
-                        <span class="font-medium">${{ number_format($discounted, 2) }}</span>
+                        @if($isTrial)
+                        <span class="inline-flex px-2 py-0.5 rounded text-xs bg-sky-50 text-sky-700">Free trial</span>
+                        @else
+                        <span class="inline-flex px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700">Discount</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2">
+                        @if($isTrial)
+                            {{ $promotion->resolvedTrialDays() }} days free
+                        @else
+                            {{ $promotion->discount_percent }}% off
+                            @if($promotion->book)
+                            @php
+                                $price = (float) ($promotion->book->price ?? 0);
+                                $discounted = round($price * (1 - $promotion->discount_percent / 100), 2);
+                            @endphp
+                            <div class="text-xs text-gray-500">
+                                <span class="line-through">${{ number_format($price, 2) }}</span>
+                                ${{ number_format($discounted, 2) }}
+                            </div>
+                            @endif
+                        @endif
                     </td>
                     <td class="px-4 py-2 text-gray-600">
                         {{ $promotion->starts_at?->format('Y-m-d H:i') ?? 'Now' }}
@@ -76,14 +97,10 @@
                     </td>
                     <td class="px-4 py-2 text-gray-600">{{ $promotion->creator->name ?? '—' }}</td>
                     <td class="px-4 py-2">
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('dashboard.promotions.edit', $promotion) }}" class="text-blue-600 hover:underline">Edit</a>
-                            <form method="POST" action="{{ route('dashboard.promotions.destroy', $promotion) }}" onsubmit="return confirm('Delete this promotion?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
-                            </form>
-                        </div>
+                        <x-table-actions
+                            :edit-url="route('dashboard.promotions.edit', $promotion)"
+                            :delete-url="route('dashboard.promotions.destroy', $promotion)"
+                            delete-confirm="Delete this promotion?" />
                     </td>
                 </tr>
                 @empty

@@ -371,6 +371,7 @@
                 <div>
 
                     <h2 class="text-sm font-semibold text-gray-900">Recommended For You</h2>
+                    <p class="text-xs text-gray-500">Based on books you bought — same category or author</p>
 
                     <p class="text-xs text-gray-500">Ranked by paid purchases and your reading history</p>
 

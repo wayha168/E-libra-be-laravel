@@ -59,10 +59,17 @@
             </div>
             <div>
                 <label class="block text-sm text-gray-600 mb-1">Status</label>
-                <select name="status" required class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40">
-                    <option value="active" {{ old('status', $user->status ?? 'active') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ old('status', $user->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
+                <input type="hidden" name="status" value="inactive" />
+                <label class="inline-flex items-center gap-2.5 mt-1 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        name="status"
+                        value="active"
+                        class="w-4 h-4 rounded border-gray-300 accent-black cursor-pointer"
+                        {{ old('status', $user->status ?? 'active') === 'active' ? 'checked' : '' }}
+                    />
+                    <span class="text-sm text-gray-800">Active</span>
+                </label>
             </div>
         </div>
 

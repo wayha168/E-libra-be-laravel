@@ -49,6 +49,12 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('notifications', [\App\Http\Controllers\View\AppNotificationController::class, 'index'])->name('notifications.index');
             });
 
+            Route::prefix('account')->name('account.')->middleware('role:super_admin')->group(function () {
+                Route::resource('payway', \App\Http\Controllers\View\AbaPaywayMerchantController::class)
+                    ->except(['show'])
+                    ->parameters(['payway' => 'payway']);
+            });
+
             Route::get('books/{book}/read', [BooksController::class, 'read'])->name('books.read');
             Route::get('books/{book}/pdf', [BooksController::class, 'pdf'])->name('books.pdf');
             Route::resource('books', BooksController::class);

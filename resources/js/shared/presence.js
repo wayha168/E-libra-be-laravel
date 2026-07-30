@@ -1,8 +1,10 @@
 import { ensureApiToken } from "./token.js";
-import { fetchJson, postJson } from "./api.js";
-import { initEcho } from "./echo.js";
+import { fetchJson } from "./api.js";
+import { initEcho, isEchoConnected } from "./echo.js";
 
-const HEARTBEAT_MS = 60_000;
+const HEARTBEAT_MS = 45_000;
+const PRESENCE_POLL_LIVE_MS = 60_000;
+const PRESENCE_POLL_FALLBACK_MS = 15_000;
 
 function presenceBadgeHtml(online) {
     return online
@@ -26,7 +28,8 @@ export async function initPresence() {
 
     const runHeartbeat = () => sendHeartbeat(token).catch(() => {});
 
-    window.setTimeout(runHeartbeat, 3000);
+    // Immediate heartbeat so online status is not delayed
+    runHeartbeat();
     setInterval(runHeartbeat, HEARTBEAT_MS);
 
     const usersPage = document.getElementById("usersPage");
@@ -35,14 +38,14 @@ export async function initPresence() {
     if (!canViewPresence) return;
 
     const echo = initEcho(token);
-    if (!echo) return;
+    if (echo) {
+        echo.private("dashboard.presence").listen(".presence.updated", (e) => {
+            if (!e.user_id) return;
+            updatePresenceCell(e.user_id, Boolean(e.online));
+        });
+    }
 
-    echo.private("dashboard.presence").listen(".presence.updated", (e) => {
-        if (!e.user_id) return;
-        updatePresenceCell(e.user_id, Boolean(e.online));
-    });
-
-    setInterval(async () => {
+    const syncPresence = async () => {
         try {
             const { res, data } = await fetchJson("/api/v1/admin/presence", { token, silent: true });
             if (!res.ok) return;
@@ -50,5 +53,20 @@ export async function initPresence() {
         } catch {
             /* ignore */
         }
-    }, 30_000);
+    };
+
+    let presenceTimer = null;
+    const schedulePresencePoll = () => {
+        if (presenceTimer) window.clearTimeout(presenceTimer);
+        const delay = isEchoConnected() ? PRESENCE_POLL_LIVE_MS : PRESENCE_POLL_FALLBACK_MS;
+        presenceTimer = window.setTimeout(async () => {
+            if (document.visibilityState !== "hidden") {
+                await syncPresence();
+            }
+            schedulePresencePoll();
+        }, delay);
+    };
+
+    syncPresence();
+    schedulePresencePoll();
 }

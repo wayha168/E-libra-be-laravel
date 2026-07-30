@@ -3,6 +3,8 @@ import { initSidebar } from "../bootstrap/sidebar.js";
 import { initAutoSearch } from "../shared/autoSearch.js";
 import { initNotifications, initActivityLive } from "../shared/notifications.js";
 import { initPresence } from "../shared/presence.js";
+import { initPreferences } from "../shared/preferences.js";
+import { initFlashToasts, initUploadFormToasts } from "../shared/toast.js";
 import { initDashboardPage } from "./dashboard/index.js";
 import { initProfilePage } from "./profile/index.js";
 import { initEarningsPage } from "./earnings/index.js";
@@ -12,6 +14,9 @@ import { initBookFeedbackPage } from "./books/feedback.js";
 import { initBookReadPage } from "./books/read.js";
 
 document.addEventListener("DOMContentLoaded", () => {
+    initPreferences();
+    initFlashToasts();
+    initUploadFormToasts();
     initLayout();
     initSidebar();
     initAutoSearch();

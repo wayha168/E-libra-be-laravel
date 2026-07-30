@@ -13,16 +13,37 @@ class BookPricing
             return null;
         }
 
+        $candidates = collect();
+
         if ($book->relationLoaded('promotions')) {
-            return $book->promotions
-                ->filter(fn (Promotion $promotion) => $promotion->isCurrentlyActive())
-                ->sortByDesc('discount_percent')
-                ->first();
+            $candidates = $candidates->merge(
+                $book->promotions->filter(
+                    fn (Promotion $promotion) => $promotion->isPercentage() && $promotion->isCurrentlyActive()
+                )
+            );
+        } else {
+            $candidates = $candidates->merge(
+                $book->promotions()
+                    ->percentage()
+                    ->active()
+                    ->get()
+            );
         }
 
-        return $book->promotions()
-            ->active()
-            ->orderByDesc('discount_percent')
+        if ($book->author_id) {
+            $candidates = $candidates->merge(
+                Promotion::query()
+                    ->percentage()
+                    ->active()
+                    ->where('author_id', $book->author_id)
+                    ->whereNull('book_id')
+                    ->get()
+            );
+        }
+
+        return $candidates
+            ->unique('id')
+            ->sortByDesc('discount_percent')
             ->first();
     }
 
@@ -34,7 +55,7 @@ class BookPricing
 
         $promotion = self::activePromotion($book);
 
-        if (!$promotion) {
+        if (! $promotion || ! $promotion->discount_percent) {
             return round((float) $book->price, 2);
         }
 
@@ -53,7 +74,10 @@ class BookPricing
             'original_price' => $original,
             'effective_price' => $effective,
             'discount_percent' => $promotion?->discount_percent,
-            'on_sale' => $promotion !== null,
+            'on_sale' => $promotion !== null && $promotion->isPercentage(),
+            'promotion_scope' => $promotion
+                ? ($promotion->author_id && ! $promotion->book_id ? 'author' : 'book')
+                : null,
         ];
     }
 }

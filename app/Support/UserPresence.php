@@ -23,12 +23,19 @@ class UserPresence
     {
         $wasOnline = self::isOnline($user);
 
-        $user->forceFill(['last_seen_at' => now()])->save();
+        // Skip redundant writes when already recently active (keeps heartbeat snappy)
+        $recentlyTouched = $user->last_seen_at && $user->last_seen_at->gte(now()->subSeconds(25));
+
+        if (!$recentlyTouched) {
+            $user->forceFill(['last_seen_at' => now()])->save();
+        } else {
+            $user->last_seen_at = now();
+        }
 
         $isOnline = self::isOnline($user);
 
         if ($wasOnline !== $isOnline || !$wasOnline) {
-            event(new UserPresenceUpdated($user->fresh()));
+            event(new UserPresenceUpdated($user->fresh() ?? $user));
         }
 
         return $user;

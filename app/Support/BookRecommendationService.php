@@ -11,6 +11,14 @@ use App\Models\UserBuyBook;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
+/**
+ * Personalized book SEO / discovery recommendations.
+ *
+ * When a user has paid purchases, candidates are drawn from:
+ * - the same categories as bought books, or
+ * - the same authors as bought books.
+ * Likes/comments only seed signals when the user has no purchases yet.
+ */
 class BookRecommendationService
 {
     public static function forUser(User $user, int $limit = 12): Collection
@@ -31,39 +39,28 @@ class BookRecommendationService
                     $q->orWhereIn('author_id', $signals['author_ids']);
                 }
             })
-            ->limit($limit * 3)
-            ->get();
-
-        return $candidates
-            ->map(function (Books $book) use ($signals) {
-                $score = (int) ($book->paid_purchases_count ?? 0);
-                $reasons = [];
-
-                if ($signals['category_ids']->contains($book->category_id)) {
-                    $score += 2;
-                    $reasons[] = $book->category?->name
-                        ? "Because you enjoy {$book->category->name}"
-                        : 'Based on categories you read';
-                }
-
-                if ($signals['author_ids']->contains($book->author_id)) {
-                    $score += 3;
-                    $authorName = $book->author?->user?->name ?? 'this author';
-                    $reasons[] = "More from {$authorName}";
-                }
-
-                if ($book->paid_purchases_count > 0) {
-                    $reasons[] = self::popularReason((int) $book->paid_purchases_count);
-                }
-
-                $book->recommendation_score = $score;
-                $book->recommendation_reason = $reasons[0] ?? self::popularReason((int) $book->paid_purchases_count);
-
-                return $book;
-            })
-            ->sortByDesc(fn (Books $book) => [$book->recommendation_score, $book->paid_purchases_count ?? 0])
+            ->limit(max($limit * 5, 30))
+            ->get()
+            ->map(fn (Books $book) => self::scoreCandidate($book, $signals))
+            ->sortByDesc(fn (Books $book) => [
+                $book->recommendation_score,
+                $book->paid_purchases_count ?? 0,
+                strtotime((string) $book->created_at) ?: 0,
+            ])
             ->take($limit)
             ->values();
+
+        if ($candidates->count() >= $limit) {
+            return $candidates;
+        }
+
+        // Fill remaining slots with popular titles the user has not seen
+        $filler = self::popularBooks(
+            $limit - $candidates->count(),
+            $signals['exclude_ids']->merge($candidates->pluck('id'))
+        );
+
+        return $candidates->concat($filler)->values();
     }
 
     public static function popularBooks(int $limit = 12, Collection|array $excludeIds = []): Collection
@@ -96,10 +93,17 @@ class BookRecommendationService
                 continue;
             }
 
-            $reason = match ($trigger) {
-                'purchase' => "Because you bought \"{$sourceBook->title}\"",
-                'like' => "Because you liked \"{$sourceBook->title}\"",
-                'comment' => "Because you reviewed \"{$sourceBook->title}\"",
+            $sameCategory = $sourceBook->category_id && $book->category_id === $sourceBook->category_id;
+            $sameAuthor = $sourceBook->author_id && $book->author_id === $sourceBook->author_id;
+            $authorName = $book->author?->user?->name;
+            $categoryName = $book->category?->name;
+
+            $reason = match (true) {
+                $trigger === 'purchase' && $sameAuthor && $authorName => "More from {$authorName} — you bought \"{$sourceBook->title}\"",
+                $trigger === 'purchase' && $sameCategory && $categoryName => "More in {$categoryName} — you bought \"{$sourceBook->title}\"",
+                $trigger === 'purchase' => "Because you bought \"{$sourceBook->title}\"",
+                $trigger === 'like' => "Because you liked \"{$sourceBook->title}\"",
+                $trigger === 'comment' => "Because you reviewed \"{$sourceBook->title}\"",
                 default => 'Based on your reading history',
             };
 
@@ -112,8 +116,10 @@ class BookRecommendationService
                     'book_id' => $book->id,
                     'book_title' => $book->title,
                     'category_id' => $book->category_id,
+                    'author_id' => $book->author_id,
                     'source_book_id' => $sourceBook->id,
                     'trigger' => $trigger,
+                    'match' => $sameAuthor ? 'author' : ($sameCategory ? 'category' : 'related'),
                 ],
             );
         }
@@ -121,7 +127,7 @@ class BookRecommendationService
 
     public static function notifyInterestedUsers(Books $book): void
     {
-        if (!$book->category_id && !$book->author_id) {
+        if (! $book->category_id && ! $book->author_id) {
             return;
         }
 
@@ -132,6 +138,7 @@ class BookRecommendationService
                 ->where('id', '!=', $book->id)
                 ->pluck('id');
 
+            // Prefer buyers in this category (SEO from purchase history)
             $userIds = $userIds->merge(
                 UserBuyBook::whereIn('book_id', $categoryBookIds)->where('status', 'paid')->pluck('user_id')
             )->merge(
@@ -162,26 +169,76 @@ class BookRecommendationService
                 continue;
             }
 
+            $boughtSameAuthor = $book->author_id && UserBuyBook::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'paid')
+                ->whereHas('book', fn ($q) => $q->where('author_id', $book->author_id))
+                ->exists();
+
+            $authorName = $book->author?->user?->name;
             $categoryName = $book->category?->name ?? 'your favorite genre';
+
+            $body = $boughtSameAuthor && $authorName
+                ? "\"{$book->title}\" is a new release from {$authorName}."
+                : "\"{$book->title}\" was just added in {$categoryName}.";
 
             NotificationService::send(
                 $user,
                 'recommendation.new',
                 'New book you may like',
-                "\"{$book->title}\" was just added in {$categoryName}.",
+                $body,
                 [
                     'book_id' => $book->id,
                     'book_title' => $book->title,
                     'category_id' => $book->category_id,
+                    'author_id' => $book->author_id,
                 ],
             );
         }
+    }
+
+    private static function scoreCandidate(Books $book, array $signals): Books
+    {
+        $score = (int) ($book->paid_purchases_count ?? 0);
+        $reasons = [];
+        $fromPurchase = (bool) ($signals['from_purchases'] ?? false);
+
+        $sameAuthor = $signals['author_ids']->contains($book->author_id);
+        $sameCategory = $signals['category_ids']->contains($book->category_id);
+
+        if ($sameAuthor) {
+            // Author match from bought books ranks highest
+            $score += $fromPurchase ? 12 : 5;
+            $authorName = $book->author?->user?->name ?? 'this author';
+            $reasons[] = $fromPurchase
+                ? "More from {$authorName} — based on books you bought"
+                : "More from {$authorName}";
+        }
+
+        if ($sameCategory) {
+            $score += $fromPurchase ? 8 : 3;
+            $categoryName = $book->category?->name;
+            $reasons[] = $fromPurchase && $categoryName
+                ? "Because you bought books in {$categoryName}"
+                : ($categoryName ? "Because you enjoy {$categoryName}" : 'Based on categories you read');
+        }
+
+        if ($book->paid_purchases_count > 0) {
+            $score += 1;
+            $reasons[] = self::popularReason((int) $book->paid_purchases_count);
+        }
+
+        $book->recommendation_score = $score;
+        $book->recommendation_reason = $reasons[0] ?? self::popularReason((int) $book->paid_purchases_count);
+
+        return $book;
     }
 
     private static function similarTo(User $user, Books $sourceBook, int $limit): Collection
     {
         $signals = self::interestSignals($user);
 
+        // Always relate to the source book's category OR author
         return self::booksWithPurchaseCount()
             ->where('id', '!=', $sourceBook->id)
             ->whereNotIn('id', $signals['exclude_ids'])
@@ -196,7 +253,18 @@ class BookRecommendationService
             ->orderByDesc('paid_purchases_count')
             ->orderByDesc('created_at')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->map(function (Books $book) use ($sourceBook) {
+                $sameAuthor = $sourceBook->author_id && $book->author_id === $sourceBook->author_id;
+                $sameCategory = $sourceBook->category_id && $book->category_id === $sourceBook->category_id;
+                $score = (int) ($book->paid_purchases_count ?? 0);
+                $score += $sameAuthor ? 12 : 0;
+                $score += $sameCategory ? 8 : 0;
+
+                return self::decorate($book, $book->recommendation_reason ?? 'Recommended for you', $score);
+            })
+            ->sortByDesc(fn (Books $book) => $book->recommendation_score)
+            ->values();
     }
 
     private static function booksWithPurchaseCount(): Builder
@@ -224,16 +292,32 @@ class BookRecommendationService
         $likedIds = BookLike::where('user_id', $user->id)->pluck('book_id');
         $commentedIds = BookComment::where('user_id', $user->id)->pluck('book_id');
 
-        $interactedIds = $purchasedIds->merge($likedIds)->merge($commentedIds)->unique()->filter();
-        $excludeIds = $interactedIds;
+        // Never recommend books the user already bought / engaged with
+        $excludeIds = $purchasedIds->merge($likedIds)->merge($commentedIds)->unique()->filter()->values();
 
-        $interactedBooks = Books::whereIn('id', $interactedIds)->get(['id', 'category_id', 'author_id']);
+        // Purchase-first SEO: category + author from bought books
+        if ($purchasedIds->isNotEmpty()) {
+            $boughtBooks = Books::whereIn('id', $purchasedIds)->get(['id', 'category_id', 'author_id']);
+
+            return [
+                'exclude_ids' => $excludeIds,
+                'purchased_ids' => $purchasedIds,
+                'from_purchases' => true,
+                'category_ids' => $boughtBooks->pluck('category_id')->filter()->unique()->values(),
+                'author_ids' => $boughtBooks->pluck('author_id')->filter()->unique()->values(),
+            ];
+        }
+
+        // Cold start: fall back to likes/comments until the user buys something
+        $seedIds = $likedIds->merge($commentedIds)->unique()->filter();
+        $seedBooks = Books::whereIn('id', $seedIds)->get(['id', 'category_id', 'author_id']);
 
         return [
             'exclude_ids' => $excludeIds,
             'purchased_ids' => $purchasedIds,
-            'category_ids' => $interactedBooks->pluck('category_id')->filter()->unique()->values(),
-            'author_ids' => $interactedBooks->pluck('author_id')->filter()->unique()->values(),
+            'from_purchases' => false,
+            'category_ids' => $seedBooks->pluck('category_id')->filter()->unique()->values(),
+            'author_ids' => $seedBooks->pluck('author_id')->filter()->unique()->values(),
         ];
     }
 

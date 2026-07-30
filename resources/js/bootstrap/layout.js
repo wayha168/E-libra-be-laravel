@@ -115,6 +115,10 @@ export function initLayout() {
     if (dropdownBtn) {
         dropdownBtn.addEventListener("click", function (e) {
             e.stopPropagation();
+            const prefsMenu = document.getElementById("prefsMenu");
+            const prefsBtn = document.getElementById("prefsDropdownBtn");
+            if (prefsMenu) prefsMenu.classList.add("hidden");
+            if (prefsBtn) prefsBtn.setAttribute("aria-expanded", "false");
             toggleDropdown();
         });
     }

@@ -121,6 +121,28 @@
                     <div class="mt-1 font-medium text-gray-900">{{ $user->bakong_account ?: '—' }}</div>
                 </div>
             </div>
+
+            @if(auth()->user()->isSuperAdmin() && ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin()))
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <h4 class="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2">ABA PayWay Merchant</h4>
+                @if($user->abaPaywayMerchant)
+                <div class="rounded-lg bg-gray-50 px-4 py-3 text-sm space-y-1">
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-500">Merchant ID</span>
+                        <span class="font-mono text-xs">{{ $user->abaPaywayMerchant->merchant_id }}</span>
+                    </div>
+                    <div class="flex justify-between gap-2">
+                        <span class="text-gray-500">Environment</span>
+                        <span>{{ ucfirst($user->abaPaywayMerchant->environment) }} · {{ $user->abaPaywayMerchant->is_active ? 'Active' : 'Inactive' }}</span>
+                    </div>
+                    <a href="{{ route('dashboard.account.payway.edit', $user->abaPaywayMerchant) }}" class="inline-block mt-2 text-sm text-blue-600 hover:underline">Edit credentials →</a>
+                </div>
+                @else
+                <p class="text-sm text-gray-500 mb-2">No merchant credentials yet.</p>
+                <a href="{{ route('dashboard.account.payway.create', ['user_id' => $user->id]) }}" class="text-sm text-blue-600 hover:underline">Add ABA PayWay credentials →</a>
+                @endif
+            </div>
+            @endif
             @if($user->authorProfile)
             <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div>

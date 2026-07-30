@@ -1,52 +1,31 @@
 import { ensureApiToken } from "./token.js";
-
 import { fetchJson, postJson } from "./api.js";
+import { initEcho, isEchoConnected } from "./echo.js";
 
-import { initEcho } from "./echo.js";
-
-
+const POLL_MS_LIVE = 60_000;
+const POLL_MS_FALLBACK = 12_000;
 
 let toastContainer = null;
-
 let unreadCount = 0;
-
 let apiToken = null;
-
-
+const knownIds = new Set();
 
 function escapeHtml(value) {
-
     return String(value ?? "")
-
         .replace(/&/g, "&amp;")
-
         .replace(/</g, "&lt;")
-
         .replace(/>/g, "&gt;")
-
         .replace(/"/g, "&quot;");
-
 }
-
-
 
 function ensureToastContainer() {
-
     if (toastContainer) return toastContainer;
-
     toastContainer = document.createElement("div");
-
     toastContainer.id = "notificationToasts";
-
     toastContainer.className = "fixed top-4 right-4 z-[60] flex flex-col gap-2 max-w-sm";
-
     document.body.appendChild(toastContainer);
-
     return toastContainer;
-
 }
-
-
 
 function notificationDetailUrl(notification) {
     const data = notification?.data || {};
@@ -139,11 +118,12 @@ function readDotMarkup(unread) {
 
 function showToast(notification) {
     const box = ensureToastContainer();
-    const el = document.createElement("button");
+    const el = document.createElement("div");
     const detailUrl = notificationDetailUrl(notification);
 
-    el.type = "button";
-    el.className = "text-left rounded-xl border border-gray-200 bg-white shadow-lg px-4 py-3 text-sm hover:bg-gray-50 transition w-full";
+    el.className =
+        "relative overflow-hidden text-left rounded-xl border border-gray-200 bg-white shadow-lg px-4 py-3 text-sm w-full";
+    el.setAttribute("role", "status");
 
     el.innerHTML = `<div class="flex items-start gap-3">
         ${notificationIconMarkup(notification.type)}
@@ -155,9 +135,28 @@ function showToast(notification) {
             <div class="text-gray-600 mt-1">${escapeHtml(notification.body || "")}</div>
             ${detailUrl ? '<div class="text-xs text-blue-600 mt-1">Tap to view details</div>' : ""}
         </div>
-    </div>`;
+        <button type="button" data-toast-dismiss class="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition" aria-label="Dismiss">
+            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </button>
+    </div>
+    <div class="absolute left-0 right-0 bottom-0 h-0.5 bg-blue-500 origin-left" data-toast-progress style="transform: scaleX(1); transition: transform 5000ms linear;"></div>`;
 
-    el.addEventListener("click", async () => {
+    const dismiss = () => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(-6px)";
+        el.style.transition = "opacity 0.18s ease, transform 0.18s ease";
+        window.setTimeout(() => el.remove(), 180);
+    };
+
+    el.querySelector("[data-toast-dismiss]")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss();
+    });
+
+    el.addEventListener("click", async (e) => {
+        if (e.target.closest("[data-toast-dismiss]")) return;
+
         if (!notification.read_at && notification.id && apiToken) {
             await postJson(apiToken, `/api/v1/notifications/${notification.id}/read`);
             updateBadge(Math.max(0, unreadCount - 1));
@@ -169,11 +168,15 @@ function showToast(notification) {
             openNotificationSidebar();
         }
 
-        el.remove();
+        dismiss();
     });
 
-    box.appendChild(el);
-    setTimeout(() => el.remove(), 8000);
+    box.prepend(el);
+    requestAnimationFrame(() => {
+        const bar = el.querySelector("[data-toast-progress]");
+        if (bar) bar.style.transform = "scaleX(0)";
+    });
+    setTimeout(dismiss, 5000);
 }
 
 function renderNotificationItem(n) {
@@ -232,128 +235,81 @@ function bindNotificationItems(container, token, reloadFn) {
     });
 }
 
-
-
 function updateBadge(count) {
-
     unreadCount = count;
-
     const badge = document.getElementById("notificationBadge");
-
     if (!badge) return;
 
     if (count > 0) {
-
         badge.textContent = count > 99 ? "99+" : String(count);
-
         badge.classList.remove("hidden");
-
     } else {
-
         badge.classList.add("hidden");
-
     }
-
 }
-
-
 
 function bindMarkReadButtons(container, token, reloadFn) {
     bindNotificationItems(container, token, reloadFn);
 }
 
+function rememberIds(items) {
+    for (const item of items || []) {
+        if (item?.id) knownIds.add(String(item.id));
+    }
+}
 
+function isKnown(id) {
+    return Boolean(id && knownIds.has(String(id)));
+}
 
 async function loadNotifications(token, listEl, { page = 1, append = false } = {}) {
-
     const { res, data } = await fetchJson(`/api/v1/notifications?page=${page}`, { token, silent: true });
-
     if (!res.ok || !listEl) return null;
 
-
-
     const paginator = data?.data;
-
     const items = paginator?.data || [];
-
     updateBadge(data?.unread_count ?? 0);
-
-
+    rememberIds(items);
 
     const html = items.map(renderNotificationItem).join("");
-
     if (append && items.length) {
-
         listEl.insertAdjacentHTML("beforeend", html);
-
     } else {
-
         listEl.innerHTML = items.length
-
             ? html
-
             : '<div class="px-4 py-8 text-center text-gray-400 text-sm">No notifications yet.</div>';
-
     }
-
-
 
     bindMarkReadButtons(listEl, token, () => loadNotifications(token, listEl, { page: 1, append: false }));
 
-
-
     return paginator;
-
 }
-
-
 
 function updateSeeMoreButton(btn, paginator) {
-
     if (!btn || !paginator) return;
-
     const hasMore = paginator.current_page < paginator.last_page;
-
     btn.classList.toggle("hidden", !hasMore);
-
     btn.dataset.nextPage = hasMore ? String(paginator.current_page + 1) : "";
-
 }
 
-
-
 function openNotificationSidebar() {
-
     const sidebar = document.getElementById("notificationSidebar");
-
     const backdrop = document.getElementById("notificationSidebarBackdrop");
-
     if (!sidebar || !backdrop) return;
 
     sidebar.classList.add("open");
-
     backdrop.classList.remove("hidden");
-
     backdrop.classList.add("open");
-
     document.body.classList.add("overflow-hidden");
-
 }
 
-
-
 function closeNotificationSidebar() {
-
     const sidebar = document.getElementById("notificationSidebar");
-
     const backdrop = document.getElementById("notificationSidebarBackdrop");
-
     if (!sidebar || !backdrop) return;
 
     sidebar.classList.remove("open");
-
     backdrop.classList.remove("open");
-
     document.body.classList.remove("overflow-hidden");
 
     window.setTimeout(() => {
@@ -361,60 +317,69 @@ function closeNotificationSidebar() {
             backdrop.classList.add("hidden");
         }
     }, 250);
-
 }
 
-
-
 function prependNotification(listEl, notification) {
-
-    if (!listEl) return;
+    if (!listEl || !notification?.id) return;
+    if (listEl.querySelector(`[data-notification-id="${CSS.escape(String(notification.id))}"]`)) return;
 
     const empty = listEl.querySelector(".text-gray-400");
-
     if (empty) empty.remove();
 
     listEl.insertAdjacentHTML("afterbegin", renderNotificationItem(notification));
-
     bindMarkReadButtons(listEl, apiToken, () => loadNotifications(apiToken, listEl, { page: 1, append: false }));
-
 }
 
+function applyIncomingNotification(notification, { toast = true, bumpBadge = true } = {}) {
+    if (!notification?.id || isKnown(notification.id)) return false;
 
+    knownIds.add(String(notification.id));
 
-export async function initNotifications() {
-
-    const bell = document.getElementById("notificationBell");
+    if (toast) showToast(notification);
+    if (bumpBadge) updateBadge(unreadCount + 1);
 
     const sidebarList = document.getElementById("notificationSidebarList");
-
     const pageList = document.getElementById("notificationsList");
 
+    if (sidebarList) prependNotification(sidebarList, notification);
+    if (pageList) prependNotification(pageList, notification);
+
+    return true;
+}
+
+async function resolveUserId(token) {
+    const fromDom =
+        document.getElementById("notificationBell")?.dataset.userId ||
+        document.querySelector("[data-auth-user-id]")?.dataset.authUserId;
+
+    if (fromDom) return fromDom;
+
+    try {
+        const me = await fetchJson("/api/v1/me", { token, silent: true });
+        return me.data?.data?.id || null;
+    } catch {
+        return null;
+    }
+}
+
+export async function initNotifications() {
+    const bell = document.getElementById("notificationBell");
+    const sidebarList = document.getElementById("notificationSidebarList");
+    const pageList = document.getElementById("notificationsList");
     const markAllBtn = document.getElementById("markAllReadBtn");
-
     const markAllSidebarBtn = document.getElementById("markAllReadSidebarBtn");
-
     const seeMoreSidebarBtn = document.getElementById("notificationSeeMoreBtn");
-
     const seeMorePageBtn = document.getElementById("notificationPageSeeMoreBtn");
-
     const closeBtn = document.getElementById("notificationSidebarClose");
-
     const backdrop = document.getElementById("notificationSidebarBackdrop");
-
-
 
     if (!bell && !pageList && !sidebarList) return;
 
-
-
     const token = await ensureApiToken();
-
     if (!token) return;
-
     apiToken = token;
 
-
+    let seeded = false;
 
     const reloadAll = async () => {
         if (sidebarList) {
@@ -425,227 +390,166 @@ export async function initNotifications() {
             const paginator = await loadNotifications(token, pageList, { page: 1, append: false });
             updateSeeMoreButton(seeMorePageBtn, paginator);
         }
+        seeded = true;
     };
 
-    const bootstrap = async () => {
-        if (sidebarList) {
-            const paginator = await loadNotifications(token, sidebarList, { page: 1, append: false });
-            updateSeeMoreButton(seeMoreSidebarBtn, paginator);
-        }
-        if (pageList) {
-            const paginator = await loadNotifications(token, pageList, { page: 1, append: false });
-            updateSeeMoreButton(seeMorePageBtn, paginator);
+    const syncNewNotifications = async ({ toast = true } = {}) => {
+        try {
+            const { res, data } = await fetchJson("/api/v1/notifications?page=1", { token, silent: true });
+            if (!res.ok) return;
+
+            const items = data?.data?.data || [];
+            updateBadge(data?.unread_count ?? unreadCount);
+
+            // First sync only seeds known IDs so we don't toast existing items
+            if (!seeded) {
+                rememberIds(items);
+                seeded = true;
+                return;
+            }
+
+            // Newest first so toasts appear in natural order (latest on top)
+            const fresh = items.filter((n) => n?.id && !isKnown(n.id));
+            for (const notification of fresh) {
+                applyIncomingNotification(notification, { toast, bumpBadge: false });
+            }
+        } catch {
+            /* ignore */
         }
     };
 
     const defer = (fn) => {
         if (typeof window.requestIdleCallback === "function") {
-            window.requestIdleCallback(() => fn(), { timeout: 2000 });
+            window.requestIdleCallback(() => fn(), { timeout: 800 });
         } else {
-            window.setTimeout(fn, 250);
+            window.setTimeout(fn, 50);
         }
     };
 
     defer(() => {
-        bootstrap().catch(() => {});
+        reloadAll().catch(() => {});
     });
 
-
-
     seeMoreSidebarBtn?.addEventListener("click", async () => {
-
         const nextPage = Number(seeMoreSidebarBtn.dataset.nextPage || 0);
-
         if (!nextPage || !sidebarList) return;
 
         seeMoreSidebarBtn.disabled = true;
-
         const paginator = await loadNotifications(token, sidebarList, { page: nextPage, append: true });
-
         updateSeeMoreButton(seeMoreSidebarBtn, paginator);
-
         seeMoreSidebarBtn.disabled = false;
-
     });
 
-
-
     seeMorePageBtn?.addEventListener("click", async () => {
-
         const nextPage = Number(seeMorePageBtn.dataset.nextPage || 0);
-
         if (!nextPage || !pageList) return;
 
         seeMorePageBtn.disabled = true;
-
         const paginator = await loadNotifications(token, pageList, { page: nextPage, append: true });
-
         updateSeeMoreButton(seeMorePageBtn, paginator);
-
         seeMorePageBtn.disabled = false;
-
     });
 
-
-
     const markAll = async () => {
-
         await postJson(token, "/api/v1/notifications/read-all");
-
         await reloadAll();
-
     };
 
-
-
     if (markAllBtn) markAllBtn.addEventListener("click", markAll);
-
     if (markAllSidebarBtn) markAllSidebarBtn.addEventListener("click", markAll);
 
-
-
     if (bell) {
-
         bell.addEventListener("click", async (e) => {
-
             e.stopPropagation();
-
             openNotificationSidebar();
 
             if (sidebarList) {
-
                 const paginator = await loadNotifications(token, sidebarList, { page: 1, append: false });
-
                 updateSeeMoreButton(seeMoreSidebarBtn, paginator);
-
             }
-
         });
-
     }
-
-
 
     closeBtn?.addEventListener("click", closeNotificationSidebar);
-
     backdrop?.addEventListener("click", closeNotificationSidebar);
-
     document.addEventListener("keydown", (e) => {
-
         if (e.key === "Escape") closeNotificationSidebar();
-
     });
 
+    // Backup poll: light when WebSocket is live, faster when it is not
+    const pollOnce = () => {
+        if (document.visibilityState === "hidden") return;
+        syncNewNotifications({ toast: true }).catch(() => {});
+    };
 
+    let pollTimer = null;
+    const schedulePoll = () => {
+        if (pollTimer) window.clearTimeout(pollTimer);
+        const delay = isEchoConnected() ? POLL_MS_LIVE : POLL_MS_FALLBACK;
+        pollTimer = window.setTimeout(() => {
+            pollOnce();
+            schedulePoll();
+        }, delay);
+    };
+    schedulePoll();
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            pollOnce();
+            schedulePoll();
+        }
+    });
+
+    window.addEventListener("focus", () => {
+        pollOnce();
+    });
 
     const echo = initEcho(token);
-
     if (!echo) return;
 
-
-
     try {
-
-        const me = await fetchJson("/api/v1/me", { token });
-
-        const userId = me.data?.data?.id;
-
+        const userId = await resolveUserId(token);
         if (!userId) return;
 
-
-
         echo.private("notifications." + userId).listen(".notification.created", (e) => {
-
             if (!e.notification) return;
-
-            showToast(e.notification);
-
-            updateBadge(unreadCount + 1);
-
-
-
-            if (sidebarList) {
-
-                prependNotification(sidebarList, e.notification);
-
-            }
-
-            if (pageList) {
-
-                prependNotification(pageList, e.notification);
-
-            }
-
+            applyIncomingNotification(e.notification, { toast: true, bumpBadge: true });
         });
-
     } catch {
-
-        /* ignore */
-
+        /* polling still covers updates */
     }
-
 }
 
-
-
 export async function initActivityLive() {
-
     if (!document.getElementById("activityPage")) return;
 
-
-
     const token = await ensureApiToken();
-
     if (!token) return;
 
-
-
     const list = document.getElementById("activityList");
-
     const badge = document.getElementById("activityLiveBadge");
-
     const echo = initEcho(token);
-
     if (!echo || !list) return;
-
-
 
     if (badge) badge.classList.remove("hidden");
 
-
-
     echo.private("dashboard.activities").listen(".activity.recorded", (e) => {
-
         const a = e.activity;
-
         if (!a?.id || list.querySelector(`[data-activity-id="${a.id}"]`)) return;
 
-
-
         const empty = list.querySelector(".text-gray-400");
-
         if (empty) empty.remove();
 
-
-
-        list.insertAdjacentHTML("afterbegin", `<div class="px-4 py-3 flex items-start justify-between gap-3 bg-green-50/30" data-activity-id="${a.id}">
-
+        list.insertAdjacentHTML(
+            "afterbegin",
+            `<div class="px-4 py-3 flex items-start justify-between gap-3 bg-green-50/30" data-activity-id="${a.id}">
             <div>
-
                 <div class="font-medium text-gray-900">${escapeHtml(a.title)}</div>
-
                 <div class="text-sm text-gray-600 mt-0.5">${escapeHtml(a.description || "")}</div>
-
                 <div class="text-xs text-gray-400 mt-1">${escapeHtml(a.actor?.name || a.user?.name || "System")} · just now</div>
-
             </div>
-
             <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">${escapeHtml(a.type)}</span>
-
-        </div>`);
-
+        </div>`,
+        );
     });
-
 }
-
-

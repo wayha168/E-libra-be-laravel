@@ -7,8 +7,12 @@
     <div class="flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Authors</h1>
-            <p class="text-sm text-gray-600">Manage your authors</p>
+            <p class="text-sm text-gray-600">Manage author accounts and profiles</p>
         </div>
+        <a href="{{ route('dashboard.authors.create') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800 transition">
+            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Create author account
+        </a>
     </div>
 
     @if(session('success'))

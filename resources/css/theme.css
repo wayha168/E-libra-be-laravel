@@ -1,0 +1,448 @@
+/* Dashboard theme colors + dark mode + glassmorphism */
+
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+:root,
+html[data-theme="emerald"] {
+    --brand: #059669;
+    --brand-rgb: 5, 150, 105;
+    --brand-soft: rgba(5, 150, 105, 0.12);
+    --brand-strong: #047857;
+    --surface-page: #f8faf9;
+    --surface: #ffffff;
+    --surface-muted: #f3f4f6;
+    --surface-elevated: #ffffff;
+    --text-primary: #1b1b18;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --border: #e5e7eb;
+    --border-soft: rgba(5, 150, 105, 0.14);
+    --glass-bg: rgba(255, 255, 255, 0.62);
+    --glass-bg-strong: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.7);
+    --glass-shadow: 0 12px 40px rgba(5, 150, 105, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+    --glow: rgba(5, 150, 105, 0.28);
+    --blob-a: #a7f3d0;
+    --blob-b: #d1fae5;
+    --aside-active: rgba(5, 150, 105, 0.1);
+    --btn-fg: #ffffff;
+    --danger: #dc2626;
+    --header-blur: 18px;
+}
+
+html[data-theme="ocean"] {
+    --brand: #0284c7;
+    --brand-rgb: 2, 132, 199;
+    --brand-soft: rgba(2, 132, 199, 0.12);
+    --brand-strong: #0369a1;
+    --surface-page: #f0f9ff;
+    --border-soft: rgba(2, 132, 199, 0.14);
+    --glass-shadow: 0 12px 40px rgba(2, 132, 199, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+    --glow: rgba(2, 132, 199, 0.28);
+    --blob-a: #7dd3fc;
+    --blob-b: #e0f2fe;
+    --aside-active: rgba(2, 132, 199, 0.1);
+}
+
+html[data-theme="sunset"] {
+    --brand: #ea580c;
+    --brand-rgb: 234, 88, 12;
+    --brand-soft: rgba(234, 88, 12, 0.12);
+    --brand-strong: #c2410c;
+    --surface-page: #fff7ed;
+    --border-soft: rgba(234, 88, 12, 0.14);
+    --glass-shadow: 0 12px 40px rgba(234, 88, 12, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+    --glow: rgba(234, 88, 12, 0.28);
+    --blob-a: #fdba74;
+    --blob-b: #ffedd5;
+    --aside-active: rgba(234, 88, 12, 0.1);
+}
+
+html[data-theme="violet"] {
+    --brand: #7c3aed;
+    --brand-rgb: 124, 58, 237;
+    --brand-soft: rgba(124, 58, 237, 0.12);
+    --brand-strong: #6d28d9;
+    --surface-page: #f5f3ff;
+    --border-soft: rgba(124, 58, 237, 0.14);
+    --glass-shadow: 0 12px 40px rgba(124, 58, 237, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+    --glow: rgba(124, 58, 237, 0.28);
+    --blob-a: #c4b5fd;
+    --blob-b: #ede9fe;
+    --aside-active: rgba(124, 58, 237, 0.1);
+}
+
+html[data-mode="dark"] {
+    --surface-page: #0c1117;
+    --surface: #141b24;
+    --surface-muted: #1a2330;
+    --surface-elevated: #1c2633;
+    --text-primary: #e8eef4;
+    --text-secondary: #9aa8b6;
+    --text-muted: #6b7a8a;
+    --border: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(20, 28, 38, 0.72);
+    --glass-bg-strong: rgba(28, 38, 51, 0.88);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 4px 16px rgba(0, 0, 0, 0.25);
+    --blob-a: color-mix(in srgb, var(--brand) 35%, #1a2330);
+    --blob-b: #15202b;
+    --aside-active: rgba(var(--brand-rgb), 0.22);
+}
+
+html[data-mode="dark"][data-theme="emerald"] {
+    --brand: #34d399;
+    --brand-rgb: 52, 211, 153;
+    --brand-strong: #10b981;
+    --brand-soft: rgba(52, 211, 153, 0.16);
+}
+
+html[data-mode="dark"][data-theme="ocean"] {
+    --brand: #38bdf8;
+    --brand-rgb: 56, 189, 248;
+    --brand-strong: #0ea5e9;
+    --brand-soft: rgba(56, 189, 248, 0.16);
+}
+
+html[data-mode="dark"][data-theme="sunset"] {
+    --brand: #fb923c;
+    --brand-rgb: 251, 146, 60;
+    --brand-strong: #f97316;
+    --brand-soft: rgba(251, 146, 60, 0.16);
+}
+
+html[data-mode="dark"][data-theme="violet"] {
+    --brand: #a78bfa;
+    --brand-rgb: 167, 139, 250;
+    --brand-strong: #8b5cf6;
+    --brand-soft: rgba(167, 139, 250, 0.16);
+}
+
+html {
+    color-scheme: light;
+}
+
+html[data-mode="dark"] {
+    color-scheme: dark;
+}
+
+body.app-shell {
+    background:
+        radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--blob-a) 55%, transparent) 0%, transparent 42%),
+        radial-gradient(circle at 92% 100%, color-mix(in srgb, var(--blob-b) 70%, transparent) 0%, transparent 40%),
+        var(--surface-page);
+    color: var(--text-primary);
+    transition: background 0.4s ease, color 0.3s ease;
+}
+
+html[data-lang="km"] body {
+    font-family: "Noto Sans Khmer", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* —— Glass utilities —— */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--header-blur)) saturate(1.35);
+    -webkit-backdrop-filter: blur(var(--header-blur)) saturate(1.35);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+}
+
+/* Solid dropdown menus — clear and readable (no frosted opacity) */
+.dropdown-panel {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+html[data-mode="dark"] .dropdown-panel {
+    background: #1c2633;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dropdown-panel a:hover,
+.dropdown-panel button:hover {
+    background: var(--surface-muted);
+    opacity: 1;
+}
+
+.glass-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.glass-btn:hover {
+    background: var(--glass-bg-strong);
+    box-shadow: 0 4px 16px rgba(var(--brand-rgb), 0.15);
+}
+
+.glass-btn[aria-expanded="true"] {
+    background: var(--glass-bg-strong);
+    border-color: rgba(var(--brand-rgb), 0.35);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* —— Shell surfaces —— */
+.app-header {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(var(--header-blur)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--header-blur)) saturate(1.4);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+
+html[data-mode="dark"] .app-header {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.app-aside {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px) saturate(1.25);
+    -webkit-backdrop-filter: blur(16px) saturate(1.25);
+    border-right: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+/* —— Slim sidebar scrollbar —— */
+.app-aside .aside-nav {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--brand-rgb), 0.35) transparent;
+    padding-right: 0.15rem;
+    margin-right: -0.15rem;
+}
+
+.app-aside .aside-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.app-aside .aside-nav::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 0.35rem;
+}
+
+.app-aside .aside-nav::-webkit-scrollbar-thumb {
+    background: rgba(var(--brand-rgb), 0.32);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.app-aside .aside-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--brand-rgb), 0.55);
+    background-clip: padding-box;
+}
+
+.app-aside .aside-nav::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+html[data-mode="dark"] .app-aside .aside-nav {
+    scrollbar-color: rgba(var(--brand-rgb), 0.45) transparent;
+}
+
+html[data-mode="dark"] .app-aside .aside-nav::-webkit-scrollbar-thumb {
+    background: rgba(var(--brand-rgb), 0.4);
+    background-clip: padding-box;
+}
+
+html[data-mode="dark"] .app-aside .aside-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--brand-rgb), 0.65);
+    background-clip: padding-box;
+}
+
+.app-aside .aside-nav-link {
+    color: var(--text-secondary);
+}
+
+.app-aside .aside-nav-link:hover {
+    background: var(--surface-muted);
+    color: var(--text-primary);
+}
+
+.app-aside .aside-nav-link.is-active {
+    background: var(--aside-active);
+    color: var(--brand-strong);
+    font-weight: 600;
+}
+
+.app-aside .aside-brand-mark {
+    background: var(--brand);
+    color: var(--btn-fg);
+}
+
+.app-aside .aside-logout {
+    background: var(--brand);
+    color: var(--btn-fg);
+}
+
+.app-aside .aside-logout:hover {
+    background: var(--brand-strong);
+}
+
+.app-main {
+    background: transparent;
+}
+
+/* —— Preferences dropdown —— */
+.prefs-menu {
+    width: 20rem;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    z-index: 40;
+    animation: prefs-in 0.18s ease-out;
+}
+
+@keyframes prefs-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.prefs-section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.theme-swatch {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-swatch:hover {
+    transform: scale(1.08);
+}
+
+.theme-swatch.active {
+    border-color: var(--text-primary);
+    box-shadow:
+        0 0 0 3px var(--brand-soft),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.theme-swatch[data-theme-pick="emerald"] {
+    background: linear-gradient(145deg, #34d399, #047857);
+}
+
+.theme-swatch[data-theme-pick="ocean"] {
+    background: linear-gradient(145deg, #38bdf8, #0369a1);
+}
+
+.theme-swatch[data-theme-pick="sunset"] {
+    background: linear-gradient(145deg, #fb923c, #c2410c);
+}
+
+.theme-swatch[data-theme-pick="violet"] {
+    background: linear-gradient(145deg, #a78bfa, #6d28d9);
+}
+
+.lang-chip,
+.mode-chip {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid var(--border);
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+html[data-mode="dark"] .lang-chip,
+html[data-mode="dark"] .mode-chip {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lang-chip:hover,
+.mode-chip:hover {
+    color: var(--text-primary);
+    border-color: rgba(var(--brand-rgb), 0.3);
+}
+
+.lang-chip.active,
+.mode-chip.active {
+    color: var(--brand-strong);
+    background: var(--brand-soft);
+    border-color: rgba(var(--brand-rgb), 0.4);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* Dark mode soft overrides for common Tailwind surfaces in dashboard chrome */
+html[data-mode="dark"] #dashboardAside.aside-is-collapsed #asideToggleBtn {
+    background: var(--surface-elevated);
+    border-color: var(--border);
+}
+
+html[data-mode="dark"] #notificationSidebar {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+html[data-mode="dark"] #notificationSidebarBackdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+html[data-mode="dark"] .bg-white {
+    background-color: var(--surface) !important;
+}
+
+html[data-mode="dark"] .bg-gray-50,
+html[data-mode="dark"] .hover\:bg-gray-50:hover,
+html[data-mode="dark"] .hover\:bg-gray-100:hover {
+    background-color: var(--surface-muted) !important;
+}
+
+html[data-mode="dark"] .border-gray-100,
+html[data-mode="dark"] .border-gray-200,
+html[data-mode="dark"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border) !important;
+}
+
+html[data-mode="dark"] .text-gray-500,
+html[data-mode="dark"] .text-gray-400,
+html[data-mode="dark"] .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+html[data-mode="dark"] .text-gray-700,
+html[data-mode="dark"] .text-gray-900,
+html[data-mode="dark"] .text-\[\#1b1b18\] {
+    color: var(--text-primary) !important;
+}
+
+html[data-mode="dark"] .bg-black\/5 {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-mode="dark"] .bg-black {
+    background-color: var(--brand) !important;
+}
+
+html[data-mode="dark"] .text-blue-600 {
+    color: var(--brand) !important;
+}

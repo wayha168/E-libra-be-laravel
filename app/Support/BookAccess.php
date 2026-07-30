@@ -14,7 +14,7 @@ class BookAccess
 
     public static function isPaid(Books $book): bool
     {
-        return !is_null($book->price) && $book->price > 0;
+        return ! is_null($book->price) && $book->price > 0;
     }
 
     public static function hasPdf(Books $book): bool
@@ -24,11 +24,11 @@ class BookAccess
 
     public static function canAccessFull($user, Books $book): bool
     {
-        if (!self::isPaid($book)) {
+        if (! self::isPaid($book)) {
             return true;
         }
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -52,6 +52,10 @@ class BookAccess
             return true;
         }
 
+        if (BookTrialAccess::hasActiveTrial($user, $book)) {
+            return true;
+        }
+
         return UserBuyBook::where('user_id', $user->id)
             ->where('book_id', $book->id)
             ->where('status', 'paid')
@@ -71,7 +75,7 @@ class BookAccess
 
         $book->has_pdf = $hasPdf;
         $book->has_full_access = $fullAccess;
-        $book->can_preview = $paid && $hasPdf && !$fullAccess;
+        $book->can_preview = $paid && $hasPdf && ! $fullAccess;
         $book->trial_pages = self::trialPages();
 
         $discount = BookPricing::discountMeta($book);
@@ -79,10 +83,27 @@ class BookAccess
         $book->effective_price = $discount['effective_price'];
         $book->discount_percent = $discount['discount_percent'];
         $book->on_sale = $discount['on_sale'];
+        $book->promotion_scope = $discount['promotion_scope'];
 
-        $onTrial = $user && method_exists($user, 'onTrial') && $user->onTrial();
-        $book->on_trial = (bool) $onTrial;
-        $book->trial_ends_at = $onTrial ? $user->trial_ends_at : null;
+        $promoTrial = $user ? BookTrialAccess::activeFreeTrialPromotion($book) : null;
+        $claimed = $user ? BookTrialAccess::trialFor($user, $book) : null;
+        $trialActive = $claimed?->isActive() === true;
+        $trialExpired = $claimed?->isExpired() === true;
+
+        $legacyTrial = $user && method_exists($user, 'onTrial') && $user->onTrial();
+
+        $book->free_trial_available = (bool) $promoTrial && ! $claimed;
+        $book->on_trial = $trialActive || (bool) $legacyTrial;
+        $book->trial_ends_at = $trialActive
+            ? $claimed->ends_at
+            : ($legacyTrial ? $user->trial_ends_at : null);
+        $book->trial_expired = $trialExpired && ! $fullAccess;
+        $book->payment_required = $paid && ! $fullAccess && ($trialExpired || ! $promoTrial);
+        $book->request_access_url = ($paid && $user)
+            ? url('/api/v1/books/' . $book->id . '/request-access')
+            : null;
+        $book->buy_url = $paid ? url('/api/v1/books/' . $book->id . '/buy') : null;
+
         $book->preview_url = ($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null;
         $book->download_url = ($hasPdf && $fullAccess) ? url('/api/v1/books/' . $book->id . '/download') : null;
         $book->read_url = $hasPdf ? url('/dashboard/books/' . $book->id . '/read') : null;

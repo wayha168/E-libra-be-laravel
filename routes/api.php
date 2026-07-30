@@ -17,7 +17,7 @@ use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Broadcast;
 
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1/api')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/auth/google', [AuthController::class, 'google']);
     Route::get('/auth/google/config', [AuthController::class, 'googleConfig']);
@@ -28,7 +28,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/stripe/webhook', StripeWebhookController::class);
 });
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1/api')->group(function () {
     // Public: categories + books (read only, no authentication required)
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
@@ -118,6 +118,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
+        Route::post('/books/{book}/request-access', [BooksController::class, 'requestAccess']);
         Route::post('/books/{book}/like', [BookFeedbackController::class, 'toggleLike']);
         Route::post('/books/{book}/comments', [BookFeedbackController::class, 'storeComment']);
         Route::get('/books/{book}/download', [BooksController::class, 'download']);
