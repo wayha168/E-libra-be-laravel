@@ -5,6 +5,7 @@ namespace App\Http\Controllers\View;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\SyncsRolePermissions;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -44,7 +45,7 @@ class PermissionController
 
     public function create(): View
     {
-        $roles = Role::orderBy('role')->get();
+        $roles = Role::with('permissions')->orderBy('role')->get();
         $allPermissions = Permission::orderBy('display_name')->get();
 
         return view('dashboard.permissions.create', compact('roles', 'allPermissions'));
@@ -64,9 +65,7 @@ class PermissionController
             'description' => $data['description'] ?? null,
         ]);
 
-        if (!empty($data['roles'])) {
-            $permission->roles()->sync($data['roles']);
-        }
+        SyncsRolePermissions::syncRolesForPermission($permission, $data['roles'] ?? []);
 
         return redirect()->route('dashboard.permissions.index')->with('success', 'Permission created successfully');
     }
@@ -106,7 +105,7 @@ class PermissionController
             'description' => $data['description'] ?? null,
         ]);
 
-        $permission->roles()->sync($data['roles'] ?? []);
+        SyncsRolePermissions::syncRolesForPermission($permission, $data['roles'] ?? []);
 
         return redirect()->route('dashboard.permissions.index')->with('success', 'Permission updated successfully');
     }

@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Controllers\Api\AuthorEarningsController;
 use App\Http\Controllers\Api\BookFeedbackController;
 use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Broadcast;
 
 
@@ -48,6 +51,10 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/recommendations', [\App\Http\Controllers\Api\RecommendationController::class, 'index']);
     Route::get('/recommendations/popular', [\App\Http\Controllers\Api\RecommendationController::class, 'popular']);
+
+    // Public global search: books, authors, top selling
+    Route::get('/search', [SearchController::class, 'index']);
+    Route::get('/search/top-selling', [SearchController::class, 'topSelling']);
 
     // Stripe public key for frontend checkout
     Route::get('/stripe/config', function () {
@@ -96,31 +103,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/purchases/{purchase}', [BookPurchaseController::class, 'show'])
             ->middleware(RoleMiddleware::class . ':admin');
 
-        // Authenticated: permissions + CRUD for admin/author/user
-        Route::get('/permissions', function (Request $request) {
-            $user = $request->user();
+        // Permissions: any auth user can list their own; admins manage full CRUD
+        Route::get('/permissions', [PermissionController::class, 'index']);
 
-            // super_admin gets all permissions
-            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
-                $permissions = \App\Models\Permission::with('roles')->latest()->paginate(10);
+        Route::middleware(RoleMiddleware::class . ':admin,super_admin')->group(function () {
+            Route::get('/roles', [RoleController::class, 'index']);
+            Route::get('/roles/{role}', [RoleController::class, 'show']);
+            Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
-                return response()->json([
-                    'message' => 'Permissions fetched successfully',
-                    'data' => $permissions,
-                ]);
-            }
-
-            // otherwise: permissions for user's role
-            $permissions = \App\Models\Permission::whereHas('roles', function ($q) use ($user) {
-                if (method_exists($user, 'role') && $user->role) {
-                    $q->where('roles.id', $user->role->id);
-                }
-            })->latest()->paginate(10);
-
-            return response()->json([
-                'message' => 'Permissions fetched successfully',
-                'data' => $permissions,
-            ]);
+            Route::post('/permissions', [PermissionController::class, 'store']);
+            Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
+            Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
+            Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
         });
 
         Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
