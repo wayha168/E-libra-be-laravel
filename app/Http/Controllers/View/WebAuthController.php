@@ -28,9 +28,11 @@ class WebAuthController
             return response()->json(['message' => 'Invalid token'], 401);
         }
 
-        // Block role "user" from establishing a dashboard session
+        // Reader accounts use the separate frontend app via API — not this dashboard
         if (method_exists($user, 'isUser') && $user->isUser()) {
-            return response()->json(['message' => 'Credentials are invalid'], 403);
+            return response()->json([
+                'message' => 'This account cannot access the admin dashboard. Use the app frontend instead.',
+            ], 403);
         }
 
         Auth::guard('web')->login($user);

@@ -106,7 +106,10 @@ class BookAccess
 
         $book->preview_url = ($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null;
         $book->download_url = ($hasPdf && $fullAccess) ? url('/api/v1/books/' . $book->id . '/download') : null;
-        $book->read_url = $hasPdf ? url('/dashboard/books/' . $book->id . '/read') : null;
+        // API read URL for the separate frontend (no dashboard login required)
+        $book->read_url = ($hasPdf && $fullAccess)
+            ? url('/api/v1/books/' . $book->id . '/download')
+            : (($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null);
 
         unset($book->pdf_file, $book->pdf_preview_path);
     }

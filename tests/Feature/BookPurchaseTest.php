@@ -64,6 +64,44 @@ class BookPurchaseTest extends TestCase
         ], $overrides));
     }
 
+    public function test_guest_can_list_show_and_read_free_books_without_login(): void
+    {
+        $freeBook = $this->seedBookWithPdf(0);
+        $freeBook->update(['price' => 0]);
+        $freeBook = $freeBook->fresh();
+
+        $paidBook = $this->seedBookWithPdf(9.99);
+
+        $this->getJson('/api/v1/books')
+            ->assertOk()
+            ->assertJsonPath('message', 'Books fetched successfully');
+
+        $this->getJson("/api/v1/books/{$freeBook->id}")
+            ->assertOk()
+            ->assertJsonPath('data.has_full_access', true)
+            ->assertJsonPath('data.has_pdf', true);
+
+        $this->get("/api/v1/books/{$freeBook->id}/download")
+            ->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $this->get("/api/v1/books/{$freeBook->id}/download")->headers->get('content-type')
+        );
+
+        $this->getJson("/api/v1/books/{$paidBook->id}")
+            ->assertOk()
+            ->assertJsonPath('data.has_full_access', false)
+            ->assertJsonPath('data.can_preview', true);
+
+        $this->getJson("/api/v1/books/{$paidBook->id}/download")
+            ->assertStatus(402)
+            ->assertJsonPath('code', 'payment_required');
+
+        $this->get("/api/v1/books/{$paidBook->id}/preview")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_user_can_purchase_book_and_access_gated_pdf(): void
     {
         $user = $this->createUser([
@@ -94,7 +132,7 @@ class BookPurchaseTest extends TestCase
             ->assertJsonPath('data.can_preview', true);
 
         $response = $this->getJson("/api/v1/books/{$book->id}/download");
-        $response->assertStatus(403);
+        $response->assertStatus(402);
 
         $response = $this->get("/api/v1/books/{$book->id}/preview");
         $response->assertOk()->assertHeader('content-type', 'application/pdf');

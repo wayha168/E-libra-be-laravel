@@ -18,8 +18,8 @@
 
                 <div class="relative mb-8 text-center">
                     <div class="mx-auto w-11 h-11 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs tracking-widest">eL</div>
-                    <h1 class="mt-4 text-2xl font-semibold text-black">Welcome back</h1>
-                    <p class="mt-1 text-sm text-gray-500">Login to continue</p>
+                    <h1 class="mt-4 text-2xl font-semibold text-black">Admin dashboard</h1>
+                    <p class="mt-1 text-sm text-gray-500">Sign in with an admin or author account</p>
                 </div>
 
                 <form id="loginForm" class="space-y-5" autocomplete="off">

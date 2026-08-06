@@ -44,8 +44,10 @@ class BookApiPresenter
             'trial_pages' => BookAccess::trialPages(),
             'preview_url' => ($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null,
             'download_url' => ($hasPdf && $fullAccess) ? url('/api/v1/books/' . $book->id . '/download') : null,
-            'read_url' => $hasPdf ? url('/dashboard/books/' . $book->id . '/read') : null,
-            'show_url' => url('/dashboard/books/' . $book->id),
+            'read_url' => ($hasPdf && $fullAccess)
+                ? url('/api/v1/books/' . $book->id . '/download')
+                : (($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null),
+            'show_url' => url('/api/v1/books/' . $book->id),
             'likes_count' => (int) ($book->likes_count ?? BookLike::where('book_id', $book->id)->count()),
             'comments_count' => (int) ($book->comments_count ?? BookComment::where('book_id', $book->id)->count()),
             'user_has_liked' => $user

@@ -39,6 +39,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/books/{book}/likes', [BookFeedbackController::class, 'likes']);
     Route::get('/books/{book}/feedback', [BookFeedbackController::class, 'feedback']);
     Route::get('/books/{book}/preview', [BooksController::class, 'preview']);
+    // Public read: free books (full PDF) + paid books (preview only via /preview)
+    Route::get('/books/{book}/download', [BooksController::class, 'download']);
 
     Route::get('/recommendations', [\App\Http\Controllers\Api\RecommendationController::class, 'index']);
     Route::get('/recommendations/popular', [\App\Http\Controllers\Api\RecommendationController::class, 'popular']);
@@ -121,7 +123,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/books/{book}/request-access', [BooksController::class, 'requestAccess']);
         Route::post('/books/{book}/like', [BookFeedbackController::class, 'toggleLike']);
         Route::post('/books/{book}/comments', [BookFeedbackController::class, 'storeComment']);
-        Route::get('/books/{book}/download', [BooksController::class, 'download']);
         Route::resource('books', BooksController::class)->only(['store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,super_admin');
         Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,user');
 

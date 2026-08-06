@@ -1,5 +1,14 @@
 import { fetchJson } from "../../shared/api.js";
 
+const DASHBOARD_ROLES = new Set(["admin", "author", "super_admin"]);
+
+function canAccessDashboard(user) {
+    const role = user?.role?.role || user?.display_role;
+    if (!role) return false;
+    const normalized = String(role).toLowerCase().replace(/\s+/g, "_");
+    return DASHBOARD_ROLES.has(normalized);
+}
+
 async function finishLogin(token, showError) {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const sessionRes = await fetch("/auth/session", {
@@ -58,6 +67,7 @@ export function initLoginPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
+                silent: true,
             });
 
             if (!res.ok) {
@@ -66,14 +76,22 @@ export function initLoginPage() {
             }
 
             const token = data?.data?.token;
+            const user = data?.data?.user;
             if (!token) {
                 showError("Token missing from response");
                 return;
             }
 
+            if (!canAccessDashboard(user)) {
+                showError(
+                    "This account is for the app frontend only. Admin dashboard requires admin, author, or super admin.",
+                );
+                return;
+            }
+
             await finishLogin(token, showError);
-        } catch {
-            showError("Network error. Please try again.");
+        } catch (err) {
+            showError(err?.message || "Network error. Please try again.");
         } finally {
             if (submitBtn) submitBtn.disabled = false;
             if (btnSpinner) btnSpinner.classList.add("hidden");
@@ -85,7 +103,7 @@ export function initLoginPage() {
 
     (async () => {
         try {
-            const { res, data } = await fetchJson("/api/v1/auth/google/config");
+            const { res, data } = await fetchJson("/api/v1/auth/google/config", { silent: true });
             const clientId = res.ok ? data?.data?.client_id : null;
             if (!clientId) return;
 
@@ -116,6 +134,7 @@ export function initLoginPage() {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ credential: response.credential }),
+                            silent: true,
                         });
 
                         if (!res.ok) {
@@ -124,14 +143,22 @@ export function initLoginPage() {
                         }
 
                         const token = data?.data?.token;
+                        const user = data?.data?.user;
                         if (!token) {
                             showError("Token missing from Google login response");
                             return;
                         }
 
+                        if (!canAccessDashboard(user)) {
+                            showError(
+                                "This account is for the app frontend only. Admin dashboard requires admin, author, or super admin.",
+                            );
+                            return;
+                        }
+
                         await finishLogin(token, showError);
-                    } catch {
-                        showError("Google sign-in failed. Please try again.");
+                    } catch (err) {
+                        showError(err?.message || "Google sign-in failed. Please try again.");
                     }
                 },
             });

@@ -256,7 +256,8 @@ class BooksController extends Controller
 
     public function download(Request $request, Books $book)
     {
-        $user = $request->user();
+        // Optional auth: guests can read free books; paid books still require purchase/trial
+        $user = $request->user('sanctum') ?? auth('sanctum')->user();
 
         if (! BookAccess::canAccessFull($user, $book) && $user) {
             $claim = BookTrialAccess::claim($user, $book);
@@ -274,10 +275,13 @@ class BooksController extends Controller
 
         if (! BookAccess::canAccessFull($user, $book)) {
             return response()->json([
-                'message' => 'You must purchase this book or start a free trial to access the full PDF.',
+                'message' => BookAccess::isPaid($book)
+                    ? 'You must purchase this book or start a free trial to access the full PDF.'
+                    : 'You do not have access to this book.',
                 'code' => 'payment_required',
-                'payment_required' => true,
-                'buy_url' => url('/api/v1/books/' . $book->id . '/buy'),
+                'payment_required' => BookAccess::isPaid($book),
+                'buy_url' => BookAccess::isPaid($book) ? url('/api/v1/books/' . $book->id . '/buy') : null,
+                'preview_url' => BookAccess::canPreview($book) ? url('/api/v1/books/' . $book->id . '/preview') : null,
                 'effective_price' => BookPricing::effectivePrice($book),
             ], 402);
         }
