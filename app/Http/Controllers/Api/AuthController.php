@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Responses\ApiResponseView;
 use App\Http\Responses\ApiResponses;
+use App\Models\Author;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\GoogleAuthService;
@@ -11,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class AuthController extends Controller
@@ -112,17 +114,83 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
-        return ApiResponses::created(
-            ApiResponseView::REGISTER_SUCCESSFUL,
-            ['message' => 'Register endpoint not implemented yet']
-        );
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        try {
+            $user = $this->createUserAccount($validated, 'user');
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        DashboardOverviewController::broadcastStats();
+
+        return ApiResponses::created(ApiResponseView::REGISTER_SUCCESSFUL, [
+            'user' => $user->load('role'),
+            'token' => $token,
+        ]);
     }
 
     public function createAccount(Request $request): JsonResponse
     {
-        return ApiResponses::created(
-            ApiResponseView::CREATE_ACCOUNT_SUCCESSFUL,
-            ['message' => 'Create account endpoint not implemented yet']
-        );
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['nullable', 'string', Rule::in(['user', 'author'])],
+            'bio' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $role = $validated['role'] ?? 'user';
+
+        try {
+            $user = $this->createUserAccount($validated, $role, $validated['bio'] ?? null);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        DashboardOverviewController::broadcastStats();
+
+        return ApiResponses::created(ApiResponseView::CREATE_ACCOUNT_SUCCESSFUL, [
+            'user' => $user->load(['role', 'authorProfile']),
+            'token' => $token,
+        ]);
+    }
+
+    private function createUserAccount(array $data, string $roleName, ?string $bio = null): User
+    {
+        $roleId = Role::where('role', $roleName)->value('id');
+
+        if (!$roleId) {
+            throw new RuntimeException("Role '{$roleName}' is not configured.");
+        }
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'confirm_password' => $data['password'],
+            'role_id' => $roleId,
+            'status' => 'active',
+        ]);
+
+        if ($roleName === 'author') {
+            Author::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'image_id' => null,
+                    'bio' => $bio,
+                ]
+            );
+        }
+
+        return $user;
     }
 }

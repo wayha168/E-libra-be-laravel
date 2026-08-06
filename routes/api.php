@@ -42,6 +42,10 @@ Route::prefix('v1')->group(function () {
     // Public read: free books (full PDF) + paid books (preview only via /preview)
     Route::get('/books/{book}/download', [BooksController::class, 'download']);
 
+    // Public: images (read only, no authentication required)
+    Route::get('/images', [ImageController::class, 'index']);
+    Route::get('/images/{image}', [ImageController::class, 'show']);
+
     Route::get('/recommendations', [\App\Http\Controllers\Api\RecommendationController::class, 'index']);
     Route::get('/recommendations/popular', [\App\Http\Controllers\Api\RecommendationController::class, 'popular']);
 
@@ -126,7 +130,7 @@ Route::prefix('v1')->group(function () {
         Route::resource('books', BooksController::class)->only(['store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,super_admin');
         Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,user');
 
-        Route::resource('images', ImageController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::resource('images', ImageController::class)->only(['store', 'update', 'destroy']);
 
         Route::resource('promotions', \App\Http\Controllers\Api\PromotionController::class)
             ->only(['index', 'store', 'update', 'destroy'])
