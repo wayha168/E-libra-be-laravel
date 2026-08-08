@@ -51,7 +51,8 @@ class BookPdfStorage
             }
         }
 
-        return self::resolveFullPath($book);
+        // Never fall back to the full PDF — that would leak paid content as a "preview".
+        return null;
     }
 
     public static function resolvePath(?string $stored): ?string

@@ -29,7 +29,7 @@ class UserController extends Controller
 
     public function profile(Request $request): JsonResponse
     {
-        $user = $request->user()->load(['role.permissions', 'authorProfile']);
+        $user = $request->user()->load(['role.permissions', 'authorProfile.image']);
 
         $payload = [
             'user' => [
@@ -46,6 +46,22 @@ class UserController extends Controller
                 'display_name' => $p->display_name,
             ])->toArray() ?? [],
         ];
+
+        if ($user->authorProfile) {
+            $author = $user->authorProfile;
+            $payload['author_profile'] = [
+                'id' => $author->id,
+                'bio' => $author->bio,
+                'website' => $author->website,
+                'facebook' => $author->facebook,
+                'instagram' => $author->instagram,
+                'twitter' => $author->twitter,
+                'tiktok' => $author->tiktok,
+                'youtube' => $author->youtube,
+                'telegram' => $author->telegram,
+                'image_url' => $author->image?->url,
+            ];
+        }
 
         if ($user->authorProfile || $user->isAuthor()) {
             $payload['author_earnings'] = AuthorEarnings::forUser($user);

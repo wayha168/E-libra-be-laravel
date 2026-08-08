@@ -29,6 +29,22 @@
         </div>
 
         <div>
+            <div class="text-xs text-gray-500 mb-1">Social media</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                @foreach (['website' => 'Website', 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'twitter' => 'X / Twitter', 'tiktok' => 'TikTok', 'youtube' => 'YouTube', 'telegram' => 'Telegram'] as $field => $label)
+                <div>
+                    <span class="text-gray-500">{{ $label }}:</span>
+                    @if($author->{$field})
+                    <a href="{{ $author->{$field} }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline break-all">{{ $author->{$field} }}</a>
+                    @else
+                    <span class="text-gray-400">-</span>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div>
             <div class="text-xs text-gray-500">Image</div>
             @if($author->image && $author->image->url)
             <img src="{{ $author->image->url }}" alt="Author image" class="h-16 w-16 object-cover rounded mt-1" />

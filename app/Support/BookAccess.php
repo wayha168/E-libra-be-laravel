@@ -64,7 +64,9 @@ class BookAccess
 
     public static function canPreview(Books $book): bool
     {
-        return self::isPaid($book) && self::hasPdf($book);
+        return self::isPaid($book)
+            && self::hasPdf($book)
+            && BookPdfStorage::resolvePreviewPath($book) !== null;
     }
 
     public static function appendAccessMeta(Books $book, $user): void
@@ -72,10 +74,11 @@ class BookAccess
         $hasPdf = self::hasPdf($book);
         $fullAccess = self::canAccessFull($user, $book);
         $paid = self::isPaid($book);
+        $hasPreview = self::canPreview($book);
 
         $book->has_pdf = $hasPdf;
         $book->has_full_access = $fullAccess;
-        $book->can_preview = $paid && $hasPdf && ! $fullAccess;
+        $book->can_preview = $hasPreview && ! $fullAccess;
         $book->trial_pages = self::trialPages();
 
         $discount = BookPricing::discountMeta($book);
@@ -104,12 +107,12 @@ class BookAccess
             : null;
         $book->buy_url = $paid ? url('/api/v1/books/' . $book->id . '/buy') : null;
 
-        $book->preview_url = ($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null;
+        $book->preview_url = $hasPreview ? url('/api/v1/books/' . $book->id . '/preview') : null;
         $book->download_url = ($hasPdf && $fullAccess) ? url('/api/v1/books/' . $book->id . '/download') : null;
         // API read URL for the separate frontend (no dashboard login required)
         $book->read_url = ($hasPdf && $fullAccess)
             ? url('/api/v1/books/' . $book->id . '/download')
-            : (($paid && $hasPdf) ? url('/api/v1/books/' . $book->id . '/preview') : null);
+            : ($hasPreview ? url('/api/v1/books/' . $book->id . '/preview') : null);
 
         unset($book->pdf_file, $book->pdf_preview_path);
     }

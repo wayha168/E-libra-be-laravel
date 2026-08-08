@@ -10,8 +10,11 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\BookPurchaseController;
 use App\Http\Controllers\Api\StripeWebhookController;
+use App\Http\Controllers\Api\PaywayCallbackController;
 use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Controllers\Api\AuthorEarningsController;
+use App\Http\Controllers\Api\AuthorsController;
+use App\Http\Controllers\Api\AbaPaywayMerchantController;
 use App\Http\Controllers\Api\BookFeedbackController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\PermissionController;
@@ -29,6 +32,8 @@ Route::prefix('v1')->group(function () {
 
     // Stripe webhook (no auth)
     Route::post('/stripe/webhook', StripeWebhookController::class);
+    // ABA PayWay return/callback (no auth — verified via purchase/tran_id)
+    Route::match(['get', 'post'], '/payway/callback', PaywayCallbackController::class);
 });
 
 Route::prefix('v1')->group(function () {
@@ -42,8 +47,13 @@ Route::prefix('v1')->group(function () {
     Route::get('/books/{book}/likes', [BookFeedbackController::class, 'likes']);
     Route::get('/books/{book}/feedback', [BookFeedbackController::class, 'feedback']);
     Route::get('/books/{book}/preview', [BooksController::class, 'preview']);
+    Route::get('/books/{book}/payment-options', [BooksController::class, 'paymentOptions']);
     // Public read: free books (full PDF) + paid books (preview only via /preview)
     Route::get('/books/{book}/download', [BooksController::class, 'download']);
+
+    // Public authors
+    Route::get('/authors', [AuthorsController::class, 'index']);
+    Route::get('/authors/{author}', [AuthorsController::class, 'show']);
 
     // Public: images (read only, no authentication required)
     Route::get('/images', [ImageController::class, 'index']);
@@ -66,6 +76,8 @@ Route::prefix('v1')->group(function () {
                 'subscription_amount' => (float) config('services.stripe.subscription_amount', 9.99),
                 'khqr_enabled' => (bool) config('services.stripe.khqr_enabled', true),
                 'admin_commission_rate' => \App\Support\PurchaseCommission::rate(),
+                'trial_pages' => \App\Support\BookAccess::trialPages(),
+                'payway_note' => 'Author personal KHQR is available per-book via GET /books/{book}/payment-options',
             ],
         ]);
     });
@@ -88,6 +100,18 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware(RoleMiddleware::class . ':admin,super_admin')->group(function () {
             Route::get('/admin/presence', [\App\Http\Controllers\Api\PresenceController::class, 'index']);
+
+            Route::post('/authors', [AuthorsController::class, 'store']);
+            Route::put('/authors/{author}', [AuthorsController::class, 'update']);
+            Route::patch('/authors/{author}', [AuthorsController::class, 'update']);
+            Route::delete('/authors/{author}', [AuthorsController::class, 'destroy']);
+
+            Route::get('/payway/merchants', [AbaPaywayMerchantController::class, 'index']);
+            Route::post('/payway/merchants', [AbaPaywayMerchantController::class, 'store']);
+            Route::get('/payway/merchants/{payway}', [AbaPaywayMerchantController::class, 'show']);
+            Route::put('/payway/merchants/{payway}', [AbaPaywayMerchantController::class, 'update']);
+            Route::patch('/payway/merchants/{payway}', [AbaPaywayMerchantController::class, 'update']);
+            Route::delete('/payway/merchants/{payway}', [AbaPaywayMerchantController::class, 'destroy']);
         });
 
         Route::middleware(RoleMiddleware::class . ':admin,author,super_admin')->group(function () {
@@ -97,11 +121,11 @@ Route::prefix('v1')->group(function () {
             Route::get('/activities', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
         });
 
-        // Admin purchase records
+        // Admin purchase records (company cut)
         Route::get('/purchases', [BookPurchaseController::class, 'index'])
-            ->middleware(RoleMiddleware::class . ':admin');
+            ->middleware(RoleMiddleware::class . ':admin,super_admin');
         Route::get('/purchases/{purchase}', [BookPurchaseController::class, 'show'])
-            ->middleware(RoleMiddleware::class . ':admin');
+            ->middleware(RoleMiddleware::class . ':admin,super_admin');
 
         // Permissions: any auth user can list their own; admins manage full CRUD
         Route::get('/permissions', [PermissionController::class, 'index']);

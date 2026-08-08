@@ -130,6 +130,13 @@ class SearchController extends Controller
                 'name' => $author->user?->name,
                 'email' => $author->user?->email,
                 'bio' => $author->bio,
+                'website' => $author->website,
+                'facebook' => $author->facebook,
+                'instagram' => $author->instagram,
+                'twitter' => $author->twitter,
+                'tiktok' => $author->tiktok,
+                'youtube' => $author->youtube,
+                'telegram' => $author->telegram,
                 'image_url' => $author->image?->url ?? $author->user?->profileImage?->url,
                 'books_count' => (int) $author->books_count,
             ])

@@ -45,6 +45,7 @@ return [
         'cancel_url' => env('STRIPE_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled'),
         'khqr_enabled' => env('STRIPE_KHQR_ENABLED', true),
     ],
+
     'aba_payway' => [
         'merchant_id' => env('ABA_PAYWAY_MERCHANT_ID'),
         'api_key' => env('ABA_PAYWAY_API_KEY'),
@@ -52,6 +53,12 @@ return [
         'public_key' => env('ABA_PAYWAY_PUBLIC_KEY'),
         'private_key' => env('ABA_PAYWAY_PRIVATE_KEY'),
         'sandbox' => env('ABA_PAYWAY_SANDBOX', true),
+        'sandbox_base_url' => env('ABA_PAYWAY_SANDBOX_BASE_URL', 'https://checkout-sandbox.payway.com.kh'),
+        'production_base_url' => env('ABA_PAYWAY_PRODUCTION_BASE_URL', 'https://checkout.payway.com.kh'),
+        'success_url' => env('ABA_PAYWAY_SUCCESS_URL', env('APP_URL', 'http://localhost') . '/profile?payment=success&provider=payway'),
+        'cancel_url' => env('ABA_PAYWAY_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled&provider=payway'),
+        'return_url' => env('ABA_PAYWAY_RETURN_URL', env('APP_URL', 'http://localhost') . '/api/v1/payway/callback'),
+        'view_type' => env('ABA_PAYWAY_VIEW_TYPE', 'hosted_view'),
     ],
 
     'google' => [
@@ -64,15 +71,6 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'chat_id' => env('TELEGRAM_CHAT_ID'),
         'enabled' => env('TELEGRAM_ALERTS_ENABLED', true),
-    ],
-
-    'aba_payway' => [
-        'sandbox_base_url' => env('ABA_PAYWAY_SANDBOX_BASE_URL', 'https://checkout-sandbox.payway.com.kh'),
-        'production_base_url' => env('ABA_PAYWAY_PRODUCTION_BASE_URL', 'https://checkout.payway.com.kh'),
-        'success_url' => env('ABA_PAYWAY_SUCCESS_URL', env('APP_URL', 'http://localhost') . '/profile?payment=success&provider=payway'),
-        'cancel_url' => env('ABA_PAYWAY_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled&provider=payway'),
-        'return_url' => env('ABA_PAYWAY_RETURN_URL', env('APP_URL', 'http://localhost') . '/api/v1/payway/callback'),
-        'view_type' => env('ABA_PAYWAY_VIEW_TYPE', 'hosted_view'),
     ],
 
 ];

@@ -95,6 +95,18 @@
             <textarea name="bio" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" rows="3" placeholder="Short author bio…">{{ old('bio') }}</textarea>
         </div>
 
+        <div class="rounded-xl border border-gray-200 p-4 space-y-3">
+            <h2 class="text-sm font-semibold text-gray-800">Social media</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @foreach (['website' => 'Website', 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'twitter' => 'X / Twitter', 'tiktok' => 'TikTok', 'youtube' => 'YouTube', 'telegram' => 'Telegram'] as $field => $label)
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">{{ $label }}</label>
+                    <input name="{{ $field }}" type="url" value="{{ old($field) }}" placeholder="https://" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" />
+                </div>
+                @endforeach
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm text-gray-600 mb-1">Upload photo (optional)</label>

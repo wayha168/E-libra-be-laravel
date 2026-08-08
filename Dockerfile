@@ -8,6 +8,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql gd \
     && rm -rf /var/lib/apt/lists/*
 
+# Allow large book PDF uploads (matches BOOK_PDF_MAX_KB default 512 MB)
+RUN printf "upload_max_filesize=512M\npost_max_size=520M\nmemory_limit=512M\nmax_execution_time=300\n" \
+    > /usr/local/etc/php/conf.d/elibra-uploads.ini
+
 WORKDIR /var/www/html
 
 # Copy composer files first (better layer caching)

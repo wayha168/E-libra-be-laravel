@@ -15,6 +15,13 @@ class Author extends Model
         'user_id',
         'image_id',
         'bio',
+        'website',
+        'facebook',
+        'instagram',
+        'twitter',
+        'tiktok',
+        'youtube',
+        'telegram',
     ];
 
     public function user()

@@ -21,6 +21,7 @@ class UserBuyBook extends Model
         'status',
         'stripe_checkout_session_id',
         'stripe_payment_intent_id',
+        'payway_tran_id',
         'purchased_at',
         'expires_at',
     ];
@@ -57,7 +58,8 @@ class UserBuyBook extends Model
     public function paymentMethodLabel(): string
     {
         return match ($this->payment_method) {
-            'khqr' => 'KHQR Scan',
+            'khqr', 'stripe_khqr' => 'KHQR (Stripe)',
+            'payway_khqr' => 'KHQR (ABA PayWay)',
             default => 'Card',
         };
     }

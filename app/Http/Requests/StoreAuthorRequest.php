@@ -17,10 +17,20 @@ class StoreAuthorRequest extends FormRequest
 
     public function rules(): array
     {
+        $social = [
+            'website' => ['nullable', 'url', 'max:255'],
+            'facebook' => ['nullable', 'url', 'max:255'],
+            'instagram' => ['nullable', 'url', 'max:255'],
+            'twitter' => ['nullable', 'url', 'max:255'],
+            'tiktok' => ['nullable', 'url', 'max:255'],
+            'youtube' => ['nullable', 'url', 'max:255'],
+            'telegram' => ['nullable', 'url', 'max:255'],
+        ];
+
         $mode = $this->input('mode', 'new_account');
 
         if ($mode === 'existing_user') {
-            return [
+            return array_merge([
                 'mode' => ['required', Rule::in(['new_account', 'existing_user'])],
                 'user_id' => [
                     'required',
@@ -31,10 +41,10 @@ class StoreAuthorRequest extends FormRequest
                 'image_id' => ['nullable', 'uuid', 'exists:images,id'],
                 'image_file' => ['nullable', 'image', 'max:5120'],
                 'bio' => ['nullable', 'string', 'max:5000'],
-            ];
+            ], $social);
         }
 
-        return [
+        return array_merge([
             'mode' => ['required', Rule::in(['new_account', 'existing_user'])],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -43,7 +53,7 @@ class StoreAuthorRequest extends FormRequest
             'image_id' => ['nullable', 'uuid', 'exists:images,id'],
             'image_file' => ['nullable', 'image', 'max:5120'],
             'bio' => ['nullable', 'string', 'max:5000'],
-        ];
+        ], $social);
     }
 
     public function withValidator(Validator $validator): void
@@ -54,16 +64,15 @@ class StoreAuthorRequest extends FormRequest
             }
 
             $userId = $this->input('user_id');
-            if (!$userId) {
+            if (! $userId) {
                 return;
             }
 
             $user = \App\Models\User::with('role')->find($userId);
-            if (!$user) {
+            if (! $user) {
                 return;
             }
 
-            // Prefer users who can become authors (author role, or plain user to promote)
             if ($user->isSuperAdmin() || $user->isAdmin()) {
                 $validator->errors()->add('user_id', 'Admin accounts cannot be linked as authors.');
             }

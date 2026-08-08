@@ -11,12 +11,16 @@ use App\Models\Books;
 use App\Models\UserBuyBook;
 use App\Events\PurchaseStatusUpdated;
 use App\Http\Controllers\Api\DashboardOverviewController;
+use App\Support\AuthorScope;
 use App\Support\BookAccess;
 use App\Support\BookPdfStorage;
 use App\Support\BookPricing;
 use App\Support\BookRecommendationService;
 use App\Support\BookTrialAccess;
 use App\Support\PurchaseCommission;
+use App\Support\StoresUploadedFiles;
+use App\Support\StoresUploadedImages;
+use App\Services\AbaPayWayService;
 use App\Services\StripePaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -66,8 +70,30 @@ class BooksController extends Controller
 
     public function store(StoreBooksRequest $request)
     {
-        $book = Books::create($request->validated());
-        $book->load('category');
+        $data = $this->bookPayloadFromRequest($request);
+        $user = $request->user();
+
+        if (AuthorScope::isAuthorOnly($user)) {
+            $data['author_id'] = AuthorScope::authorIdOrAbort($user);
+        }
+
+        $imageIds = $this->collectUploadedImageIds($request, $data['title'] ?? null);
+        if ($imageIds !== []) {
+            $data['image_id'] = $imageIds[0];
+        }
+
+        if ($request->hasFile('pdf_file')) {
+            $pdf = StoresUploadedFiles::storePdf($request->file('pdf_file'));
+            if ($pdf) {
+                $data['pdf_file'] = $pdf['pdf_file'];
+                $data['pdf_preview_path'] = $pdf['pdf_preview_path'];
+            }
+        }
+
+        $book = Books::create($data);
+        StoresUploadedImages::attachToBook($book, $imageIds);
+        $book->load(['category', 'author.user', 'image']);
+        BookAccess::appendAccessMeta($book, $user);
 
         BookRecommendationService::notifyInterestedUsers($book);
 
@@ -80,8 +106,10 @@ class BooksController extends Controller
     public function show(Books $book)
     {
         $user = auth('sanctum')->user();
+        $book->load(['category', 'author.user.abaPaywayMerchant', 'image']);
         BookAccess::appendAccessMeta($book, $user);
         $this->appendFeedbackMeta($book, $user);
+        $this->appendAuthorSocial($book);
 
         return response()->json([
             'message' => 'Book fetched successfully',
@@ -91,7 +119,31 @@ class BooksController extends Controller
 
     public function update(UpdateBooksRequest $request, Books $book)
     {
-        $book->update($request->validated());
+        AuthorScope::ensureOwnsBook($request->user(), $book);
+
+        $data = $this->bookPayloadFromRequest($request);
+
+        if (AuthorScope::isAuthorOnly($request->user())) {
+            $data['author_id'] = AuthorScope::authorIdOrAbort($request->user());
+        }
+
+        $imageIds = $this->collectUploadedImageIds($request, $data['title'] ?? $book->title);
+        if ($imageIds !== [] && ! $book->image_id) {
+            $data['image_id'] = $imageIds[0];
+        }
+
+        if ($request->hasFile('pdf_file')) {
+            $pdf = StoresUploadedFiles::storePdf($request->file('pdf_file'));
+            if ($pdf) {
+                $data['pdf_file'] = $pdf['pdf_file'];
+                $data['pdf_preview_path'] = $pdf['pdf_preview_path'];
+            }
+        }
+
+        $book->update($data);
+        StoresUploadedImages::attachToBook($book->fresh(), $imageIds);
+        $book = $book->fresh(['category', 'author.user', 'image']);
+        BookAccess::appendAccessMeta($book, $request->user());
 
         return response()->json([
             'message' => 'Book updated successfully',
@@ -109,14 +161,15 @@ class BooksController extends Controller
         ]);
     }
 
-    public function buy(Request $request, Books $book, StripePaymentService $stripe)
+    public function buy(Request $request, Books $book, StripePaymentService $stripe, AbaPayWayService $payway)
     {
         $request->validate([
-            'payment_method' => 'nullable|in:card,khqr',
+            'payment_method' => 'nullable|in:card,khqr,stripe_khqr,payway_khqr',
         ]);
 
-        $paymentMethod = $request->input('payment_method', 'card');
+        $paymentMethod = $this->normalizePaymentMethod($request->input('payment_method', 'card'));
         $user = $request->user();
+        $book->loadMissing('author.user');
 
         if (is_null($book->price) || $book->price <= 0) {
             return response()->json([
@@ -135,6 +188,12 @@ class BooksController extends Controller
             ]);
         }
 
+        if ($paymentMethod === 'payway_khqr') {
+            return $this->buyWithPayway($user, $book, $existing, $payway);
+        }
+
+        $stripeMethod = $paymentMethod === 'stripe_khqr' ? 'khqr' : 'card';
+
         if ($existing && $existing->status === 'pending' && $existing->stripe_checkout_session_id) {
             $checkoutUrl = null;
 
@@ -144,7 +203,7 @@ class BooksController extends Controller
 
             if ($stripe->isConfigured()) {
                 try {
-                    $session = $stripe->createBookCheckoutSession($user, $book, $existing->fresh(), $paymentMethod);
+                    $session = $stripe->createBookCheckoutSession($user, $book, $existing->fresh(), $stripeMethod);
                     $existing->update(['stripe_checkout_session_id' => $session->id]);
                     $checkoutUrl = $session->url;
                 } catch (\Throwable) {
@@ -155,6 +214,7 @@ class BooksController extends Controller
             return response()->json([
                 'message' => 'Checkout session already created.',
                 'data' => [
+                    'provider' => 'stripe',
                     'purchase' => $existing->fresh(),
                     'checkout_session_id' => $existing->stripe_checkout_session_id,
                     'checkout_url' => $checkoutUrl,
@@ -164,7 +224,7 @@ class BooksController extends Controller
             ]);
         }
 
-        $effectivePrice = \App\Support\BookPricing::effectivePrice($book) ?? (float) $book->price;
+        $effectivePrice = BookPricing::effectivePrice($book) ?? (float) $book->price;
 
         $purchase = UserBuyBook::updateOrCreate(
             ['user_id' => $user->id, 'book_id' => $book->id],
@@ -176,7 +236,7 @@ class BooksController extends Controller
             ]
         );
 
-        if (!$stripe->isConfigured()) {
+        if (! $stripe->isConfigured()) {
             $purchase->update([
                 'status' => 'paid',
                 'purchased_at' => now(),
@@ -193,7 +253,7 @@ class BooksController extends Controller
             ], 201);
         }
 
-        $session = $stripe->createBookCheckoutSession($user, $book, $purchase, $paymentMethod);
+        $session = $stripe->createBookCheckoutSession($user, $book, $purchase, $stripeMethod);
 
         $purchase->update([
             'stripe_checkout_session_id' => $session->id,
@@ -207,6 +267,7 @@ class BooksController extends Controller
         return response()->json([
             'message' => 'Stripe checkout session created',
             'data' => [
+                'provider' => 'stripe',
                 'purchase' => $purchase->fresh(),
                 'checkout_session_id' => $session->id,
                 'checkout_url' => $session->url,
@@ -214,6 +275,44 @@ class BooksController extends Controller
                 'payment_method' => $paymentMethod,
             ],
         ], 201);
+    }
+
+    public function paymentOptions(Books $book, StripePaymentService $stripe, AbaPayWayService $payway)
+    {
+        $book->loadMissing('author.user');
+        $authorUserId = $book->author?->user_id;
+        $paywayConfigured = $authorUserId ? $payway->isConfiguredFor($authorUserId) : false;
+        $merchant = $authorUserId ? $payway->forUser($authorUserId) : null;
+
+        return response()->json([
+            'message' => 'Payment options fetched successfully',
+            'data' => [
+                'book_id' => $book->id,
+                'price' => BookPricing::effectivePrice($book) ?? (float) $book->price,
+                'currency' => strtoupper((string) ($merchant?->currency ?: config('services.stripe.currency', 'usd'))),
+                'trial_pages' => BookAccess::trialPages(),
+                'admin_commission_rate' => PurchaseCommission::rate(),
+                'methods' => [
+                    'card' => [
+                        'available' => $stripe->isConfigured(),
+                        'provider' => 'stripe',
+                        'label' => 'Card (Stripe)',
+                    ],
+                    'stripe_khqr' => [
+                        'available' => $stripe->isConfigured() && (bool) config('services.stripe.khqr_enabled', true),
+                        'provider' => 'stripe',
+                        'label' => 'KHQR (Stripe)',
+                    ],
+                    'payway_khqr' => [
+                        'available' => $paywayConfigured,
+                        'provider' => 'aba_payway',
+                        'label' => 'Personal KHQR (ABA PayWay)',
+                        'merchant_name' => $merchant?->merchant_name,
+                        'payment_option' => $merchant?->payment_option ?: 'abapay_khqr',
+                    ],
+                ],
+            ],
+        ]);
     }
 
     public function requestAccess(Request $request, Books $book)
@@ -318,6 +417,115 @@ class BooksController extends Controller
         }
 
         return BookPdfStorage::streamFile($path, Str::slug($book->title) . '-preview.pdf', true);
+    }
+
+    private function buyWithPayway($user, Books $book, ?UserBuyBook $existing, AbaPayWayService $payway)
+    {
+        $authorUserId = $book->author?->user_id;
+        if (! $authorUserId || ! $payway->isConfiguredFor($authorUserId)) {
+            return response()->json([
+                'message' => 'Author ABA PayWay KHQR is not configured for this book.',
+                'code' => 'payway_not_configured',
+            ], 422);
+        }
+
+        $effectivePrice = BookPricing::effectivePrice($book) ?? (float) $book->price;
+
+        $purchase = UserBuyBook::updateOrCreate(
+            ['user_id' => $user->id, 'book_id' => $book->id],
+            [
+                'amount' => $effectivePrice,
+                'payment_method' => 'payway_khqr',
+                'status' => 'pending',
+                'purchased_at' => null,
+            ]
+        );
+
+        $tranId = Str::limit(str_replace('-', '', (string) $purchase->id), 20, '');
+        $purchase->update(['payway_tran_id' => $tranId]);
+
+        try {
+            $payload = $payway->buildBookPurchasePayload($user, $book->loadMissing('author'), $purchase->fresh(), [
+                'payment_option' => $payway->forUser($authorUserId)?->payment_option ?: 'abapay_khqr',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'payway_error',
+            ], 422);
+        }
+
+        event(new PurchaseStatusUpdated($purchase->fresh()));
+        DashboardOverviewController::broadcastStats();
+
+        return response()->json([
+            'message' => 'ABA PayWay KHQR checkout ready',
+            'data' => [
+                'provider' => 'aba_payway',
+                'payment_method' => 'payway_khqr',
+                'purchase' => $purchase->fresh(),
+                'endpoint' => $payload['endpoint'],
+                'fields' => $payload['fields'],
+                'tran_id' => $tranId,
+            ],
+        ], 201);
+    }
+
+    private function normalizePaymentMethod(?string $method): string
+    {
+        $method = $method ?: 'card';
+
+        return match ($method) {
+            'khqr' => 'stripe_khqr',
+            default => $method,
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function bookPayloadFromRequest(StoreBooksRequest|UpdateBooksRequest $request): array
+    {
+        $data = $request->validated();
+        unset($data['image_file'], $data['image_files'], $data['pdf_file']);
+
+        return $data;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collectUploadedImageIds(Request $request, ?string $title): array
+    {
+        $imageIds = [];
+
+        if ($request->hasFile('image_file')) {
+            $imageIds[] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'book',
+                $title
+            );
+        }
+
+        if ($request->hasFile('image_files')) {
+            $imageIds = array_merge(
+                $imageIds,
+                StoresUploadedImages::storeMany($request->file('image_files'), 'book', $title)
+            );
+        }
+
+        return array_values(array_filter($imageIds));
+    }
+
+    private function appendAuthorSocial(Books $book): void
+    {
+        if (! $book->relationLoaded('author') || ! $book->author) {
+            return;
+        }
+
+        $book->author->makeVisible([
+            'website', 'facebook', 'instagram', 'twitter', 'tiktok', 'youtube', 'telegram', 'bio',
+        ]);
     }
 
     private function canAccessBook($user, Books $book): bool

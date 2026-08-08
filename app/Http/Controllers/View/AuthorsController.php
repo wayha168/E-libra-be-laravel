@@ -87,6 +87,13 @@ class AuthorsController
                     'user_id' => $user->id,
                     'image_id' => $imageId,
                     'bio' => $data['bio'] ?? null,
+                    'website' => $data['website'] ?? null,
+                    'facebook' => $data['facebook'] ?? null,
+                    'instagram' => $data['instagram'] ?? null,
+                    'twitter' => $data['twitter'] ?? null,
+                    'tiktok' => $data['tiktok'] ?? null,
+                    'youtube' => $data['youtube'] ?? null,
+                    'telegram' => $data['telegram'] ?? null,
                 ]);
             }
 
@@ -109,6 +116,13 @@ class AuthorsController
                 'user_id' => $user->id,
                 'image_id' => $imageId,
                 'bio' => $data['bio'] ?? null,
+                'website' => $data['website'] ?? null,
+                'facebook' => $data['facebook'] ?? null,
+                'instagram' => $data['instagram'] ?? null,
+                'twitter' => $data['twitter'] ?? null,
+                'tiktok' => $data['tiktok'] ?? null,
+                'youtube' => $data['youtube'] ?? null,
+                'telegram' => $data['telegram'] ?? null,
             ]);
         });
 
@@ -146,7 +160,17 @@ class AuthorsController
 
     public function update(UpdateAuthorRequest $request, Author $author): RedirectResponse
     {
-        $author->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image_file')) {
+            $data['image_id'] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'author_profile',
+                $author->user?->name ?? 'Author'
+            );
+        }
+
+        $author->update($data);
 
         return redirect()->route('dashboard.authors.index')->with('success', 'Author updated successfully');
     }

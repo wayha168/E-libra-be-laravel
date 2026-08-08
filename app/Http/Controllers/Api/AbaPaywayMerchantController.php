@@ -1,51 +1,55 @@
 <?php
 
-namespace App\Http\Controllers\View;
+namespace App\Http\Controllers\Api;
 
 use App\Models\AbaPaywayMerchant;
 use App\Models\User;
 use App\Support\ActivityLogger;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
-class AbaPaywayMerchantController
+class AbaPaywayMerchantController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): JsonResponse
     {
-        $this->ensureSuperAdmin($request);
+        $this->ensureAdmin($request);
 
-        $merchants = AbaPaywayMerchant::with('user.role')
+        $merchants = AbaPaywayMerchant::with('user:id,name,email')
             ->latest()
-            ->get();
+            ->paginate(20);
 
-        return view('dashboard.account.payway.index', compact('merchants'));
+        $merchants->getCollection()->transform(fn (AbaPaywayMerchant $m) => $this->present($m));
+
+        return response()->json([
+            'message' => 'ABA PayWay merchants fetched successfully',
+            'data' => $merchants,
+        ]);
     }
 
-    public function create(Request $request): View
+    public function show(Request $request, AbaPaywayMerchant $payway): JsonResponse
     {
-        $this->ensureSuperAdmin($request);
+        $this->ensureAdmin($request);
+        $payway->load('user:id,name,email');
 
-        $owners = $this->eligibleOwners();
-        $prefillUserId = $request->string('user_id')->toString() ?: null;
-
-        return view('dashboard.account.payway.create', compact('owners', 'prefillUserId'));
+        return response()->json([
+            'message' => 'ABA PayWay merchant fetched successfully',
+            'data' => $this->present($payway),
+        ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse
     {
-        $this->ensureSuperAdmin($request);
+        $this->ensureAdmin($request);
         $data = $this->validated($request);
 
         $owner = User::findOrFail($data['user_id']);
         $this->assertEligibleOwner($owner);
 
         if (AbaPaywayMerchant::where('user_id', $owner->id)->exists()) {
-            return redirect()
-                ->route('dashboard.account.payway.create', ['user_id' => $owner->id])
-                ->withInput()
-                ->with('error', 'This user already has ABA PayWay credentials. Edit the existing record instead.');
+            return response()->json([
+                'message' => 'This user already has ABA PayWay credentials.',
+            ], 422);
         }
 
         $merchant = AbaPaywayMerchant::create([
@@ -65,26 +69,15 @@ class AbaPaywayMerchantController
             ['merchant_id' => $merchant->merchant_id, 'environment' => $merchant->environment],
         );
 
-        return redirect()
-            ->route('dashboard.account.payway.index')
-            ->with('success', 'ABA PayWay credentials saved for ' . $owner->name . '.');
+        return response()->json([
+            'message' => 'ABA PayWay merchant created successfully',
+            'data' => $this->present($merchant->load('user:id,name,email')),
+        ], 201);
     }
 
-    public function edit(Request $request, AbaPaywayMerchant $payway): View
+    public function update(Request $request, AbaPaywayMerchant $payway): JsonResponse
     {
-        $this->ensureSuperAdmin($request);
-        $payway->load('user.role');
-        $owners = $this->eligibleOwners();
-
-        return view('dashboard.account.payway.edit', [
-            'merchant' => $payway,
-            'owners' => $owners,
-        ]);
-    }
-
-    public function update(Request $request, AbaPaywayMerchant $payway): RedirectResponse
-    {
-        $this->ensureSuperAdmin($request);
+        $this->ensureAdmin($request);
         $data = $this->validated($request, $payway);
 
         $owner = User::findOrFail($data['user_id']);
@@ -97,7 +90,7 @@ class AbaPaywayMerchantController
             'environment' => $data['environment'],
             'currency' => $data['currency'],
             'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
-            'is_active' => $request->boolean('is_active'),
+            'is_active' => $request->boolean('is_active', $payway->is_active),
             'notes' => $data['notes'] ?: null,
         ];
 
@@ -116,14 +109,15 @@ class AbaPaywayMerchantController
             ['merchant_id' => $payway->merchant_id, 'environment' => $payway->environment],
         );
 
-        return redirect()
-            ->route('dashboard.account.payway.index')
-            ->with('success', 'ABA PayWay credentials updated.');
+        return response()->json([
+            'message' => 'ABA PayWay merchant updated successfully',
+            'data' => $this->present($payway->fresh()->load('user:id,name,email')),
+        ]);
     }
 
-    public function destroy(Request $request, AbaPaywayMerchant $payway): RedirectResponse
+    public function destroy(Request $request, AbaPaywayMerchant $payway): JsonResponse
     {
-        $this->ensureSuperAdmin($request);
+        $this->ensureAdmin($request);
         $owner = $payway->user;
         $label = "{$payway->merchant_id} — {$owner?->name}";
         $payway->delete();
@@ -137,9 +131,10 @@ class AbaPaywayMerchantController
             ['merchant_id' => $payway->merchant_id],
         );
 
-        return redirect()
-            ->route('dashboard.account.payway.index')
-            ->with('success', 'ABA PayWay credentials deleted.');
+        return response()->json([
+            'message' => 'ABA PayWay merchant deleted successfully',
+            'data' => null,
+        ]);
     }
 
     private function validated(Request $request, ?AbaPaywayMerchant $existing = null): array
@@ -174,25 +169,38 @@ class AbaPaywayMerchantController
         ]);
     }
 
-    private function eligibleOwners()
+    private function present(AbaPaywayMerchant $merchant): array
     {
-        return User::query()
-            ->with('role')
-            ->whereHas('role', fn ($q) => $q->whereIn('role', ['super_admin', 'admin', 'author']))
-            ->orderBy('name')
-            ->get();
+        return [
+            'id' => $merchant->id,
+            'user_id' => $merchant->user_id,
+            'user_name' => $merchant->user?->name,
+            'user_email' => $merchant->user?->email,
+            'merchant_id' => $merchant->merchant_id,
+            'merchant_name' => $merchant->merchant_name,
+            'api_key_masked' => $merchant->maskedApiKey(),
+            'environment' => $merchant->environment,
+            'currency' => $merchant->currency,
+            'payment_option' => $merchant->payment_option ?: 'abapay_khqr',
+            'payment_option_label' => $merchant->paymentOptionLabel(),
+            'is_active' => (bool) $merchant->is_active,
+            'notes' => $merchant->notes,
+            'created_at' => $merchant->created_at?->toIso8601String(),
+            'updated_at' => $merchant->updated_at?->toIso8601String(),
+        ];
     }
 
     private function assertEligibleOwner(User $owner): void
     {
-        if (!($owner->isSuperAdmin() || $owner->isAdmin() || $owner->isAuthor())) {
+        if (! ($owner->isSuperAdmin() || $owner->isAdmin() || $owner->isAuthor())) {
             abort(422, 'ABA PayWay credentials can only be assigned to authors or admins.');
         }
     }
 
-    private function ensureSuperAdmin(Request $request): void
+    private function ensureAdmin(Request $request): void
     {
-        if (!$request->user()?->isSuperAdmin()) {
+        $user = $request->user();
+        if (! $user || ! ($user->isSuperAdmin() || $user->isAdmin())) {
             abort(403);
         }
     }

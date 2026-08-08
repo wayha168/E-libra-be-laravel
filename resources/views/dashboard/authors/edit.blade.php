@@ -16,7 +16,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('dashboard.authors.update', $author) }}" class="space-y-4">
+    <form method="POST" action="{{ route('dashboard.authors.update', $author) }}" class="space-y-4" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -35,9 +35,25 @@
             <textarea name="bio" class="w-full border rounded px-3 py-2" rows="3">{{ old('bio', $author->bio) }}</textarea>
         </div>
 
+        <div class="rounded-xl border border-gray-200 p-4 space-y-3">
+            <h2 class="text-sm font-semibold text-gray-800">Social media</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @foreach (['website' => 'Website', 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'twitter' => 'X / Twitter', 'tiktok' => 'TikTok', 'youtube' => 'YouTube', 'telegram' => 'Telegram'] as $field => $label)
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">{{ $label }}</label>
+                    <input name="{{ $field }}" type="url" value="{{ old($field, $author->{$field}) }}" placeholder="https://" class="w-full border rounded px-3 py-2" />
+                </div>
+                @endforeach
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm text-gray-600 mb-1">Image</label>
+                <label class="block text-sm text-gray-600 mb-1">Upload new photo</label>
+                <input type="file" name="image_file" accept="image/*" class="w-full border rounded px-3 py-2 text-sm" />
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Or pick existing image</label>
                 <select name="image_id" class="w-full border rounded px-3 py-2">
                     <option value="">-- No image --</option>
                     @foreach($images ?? [] as $image)
