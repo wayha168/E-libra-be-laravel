@@ -13,6 +13,7 @@ use App\Support\PurchaseCommission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -188,6 +189,27 @@ class ElibraFeatureApisTest extends TestCase
             'is_active' => true,
         ]);
 
+        Http::fake([
+            'checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/generate-qr' => Http::response([
+                'qrString' => '00020101021230510016abaakhppxxx@abaa0115TEST',
+                'qrImage' => 'data:image/png;base64,AAAA',
+                'abapay_deeplink' => 'abamobilebank://ababank.com?type=payway&qrcode=test',
+                'app_store' => 'https://itunes.apple.com/app/aba-mobile-bank',
+                'play_store' => 'https://play.google.com/store/apps/details?id=com.paygo24.ibank',
+                'amount' => 10,
+                'currency' => 'USD',
+                'status' => [
+                    'code' => '0',
+                    'message' => 'Success.',
+                    'trace_id' => 'trace-test',
+                ],
+            ], 200),
+            'checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/check-transaction' => Http::response([
+                'status' => ['code' => '0', 'message' => 'Success.'],
+                'payment_status' => '0',
+            ], 200),
+        ]);
+
         $this->getJson("/api/v1/books/{$book->id}/payment-options")
             ->assertOk()
             ->assertJsonPath('data.methods.payway_khqr.available', true)
@@ -199,10 +221,14 @@ class ElibraFeatureApisTest extends TestCase
 
         $buy->assertCreated()
             ->assertJsonPath('data.provider', 'aba_payway')
-            ->assertJsonPath('data.payment_method', 'payway_khqr');
+            ->assertJsonPath('data.payment_method', 'payway_khqr')
+            ->assertJsonPath('data.qr_string', '00020101021230510016abaakhppxxx@abaa0115TEST')
+            ->assertJsonPath('data.qr_image', 'data:image/png;base64,AAAA')
+            ->assertJsonPath('data.abapay_deeplink', 'abamobilebank://ababank.com?type=payway&qrcode=test');
 
         $this->assertNotEmpty($buy->json('data.fields.hash'));
         $this->assertNotEmpty($buy->json('data.endpoint'));
+        $this->assertNotEmpty($buy->json('data.status_url'));
 
         $purchaseId = $buy->json('data.purchase.id');
         $tranId = $buy->json('data.tran_id');
@@ -232,6 +258,48 @@ class ElibraFeatureApisTest extends TestCase
         $this->assertEquals(9.0, (float) $earnings->json('data.net_earnings'));
         $this->assertEquals(1.0, (float) $earnings->json('data.platform_fee_total'));
         $this->assertEquals(PurchaseCommission::rate(), (float) $earnings->json('data.platform_fee_rate'));
+    }
+
+    public function test_payway_status_poll_marks_paid_when_remote_success(): void
+    {
+        $buyer = $this->createUser('user');
+        $authorUser = $this->createUser('author');
+        $book = $this->seedPaidBookWithAuthor($authorUser);
+
+        AbaPaywayMerchant::create([
+            'user_id' => $authorUser->id,
+            'merchant_id' => 'MERCHANT2',
+            'api_key' => 'test-api-key-secret-2',
+            'merchant_name' => 'Author Shop 2',
+            'environment' => 'sandbox',
+            'currency' => 'USD',
+            'payment_option' => 'abapay_khqr',
+            'is_active' => true,
+        ]);
+
+        $purchase = UserBuyBook::create([
+            'user_id' => $buyer->id,
+            'book_id' => $book->id,
+            'amount' => 10,
+            'payment_method' => 'payway_khqr',
+            'status' => 'pending',
+            'payway_tran_id' => 'TRANSTATUS001',
+        ]);
+
+        Http::fake([
+            'checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/check-transaction' => Http::response([
+                'status' => ['code' => '0', 'message' => 'Success.'],
+                'payment_status' => '0',
+            ], 200),
+        ]);
+
+        Sanctum::actingAs($buyer, ['*']);
+        $this->getJson('/api/v1/payway/status?tran_id=TRANSTATUS001')
+            ->assertOk()
+            ->assertJsonPath('data.local_status', 'paid');
+
+        $this->assertSame('paid', $purchase->fresh()->status);
+        $this->assertEquals(1.0, (float) $purchase->fresh()->admin_commission_amount);
     }
 
     public function test_admin_purchases_summary_includes_company_cut(): void

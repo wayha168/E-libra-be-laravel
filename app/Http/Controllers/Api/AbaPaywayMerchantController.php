@@ -55,10 +55,18 @@ class AbaPaywayMerchantController extends Controller
         $merchant = AbaPaywayMerchant::create([
             ...$data,
             'is_active' => $request->boolean('is_active', true),
+            'is_platform' => $request->boolean('is_platform', false),
             'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
             'notes' => $data['notes'] ?: null,
             'merchant_name' => $data['merchant_name'] ?: null,
         ]);
+
+        if ($merchant->is_platform) {
+            AbaPaywayMerchant::query()
+                ->where('id', '!=', $merchant->id)
+                ->where('is_platform', true)
+                ->update(['is_platform' => false]);
+        }
 
         ActivityLogger::log(
             'payway.created',
@@ -91,6 +99,7 @@ class AbaPaywayMerchantController extends Controller
             'currency' => $data['currency'],
             'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
             'is_active' => $request->boolean('is_active', $payway->is_active),
+            'is_platform' => $request->boolean('is_platform', $payway->is_platform),
             'notes' => $data['notes'] ?: null,
         ];
 
@@ -99,6 +108,13 @@ class AbaPaywayMerchantController extends Controller
         }
 
         $payway->update($payload);
+
+        if ($payway->is_platform) {
+            AbaPaywayMerchant::query()
+                ->where('id', '!=', $payway->id)
+                ->where('is_platform', true)
+                ->update(['is_platform' => false]);
+        }
 
         ActivityLogger::log(
             'payway.updated',
@@ -165,8 +181,91 @@ class AbaPaywayMerchantController extends Controller
                 'google_pay',
             ])],
             'is_active' => ['nullable', 'boolean'],
+            'is_platform' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+    }
+
+    /**
+     * Author (or admin) reads their own PayWay merchant from DB.
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin())) {
+            abort(403);
+        }
+
+        $merchant = AbaPaywayMerchant::query()->where('user_id', $user->id)->first();
+
+        return response()->json([
+            'message' => $merchant ? 'Your ABA PayWay merchant fetched successfully' : 'No ABA PayWay merchant configured yet',
+            'data' => $merchant ? $this->present($merchant->load('user:id,name,email')) : null,
+        ]);
+    }
+
+    /**
+     * Author upserts their own merchant credentials into DB.
+     */
+    public function upsertMine(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! ($user->isAuthor() || $user->isAdmin() || $user->isSuperAdmin())) {
+            abort(403);
+        }
+
+        $existing = AbaPaywayMerchant::query()->where('user_id', $user->id)->first();
+        $apiKeyRule = $existing
+            ? ['nullable', 'string', 'max:2000']
+            : ['required', 'string', 'max:2000'];
+
+        $data = $request->validate([
+            'merchant_id' => ['required', 'string', 'max:30'],
+            'api_key' => $apiKeyRule,
+            'merchant_name' => ['nullable', 'string', 'max:255'],
+            'environment' => ['required', Rule::in(['sandbox', 'production'])],
+            'currency' => ['required', Rule::in(['USD', 'KHR'])],
+            'payment_option' => ['nullable', Rule::in([
+                '', 'cards', 'abapay_khqr', 'abapay_khqr_deeplink', 'alipay', 'wechat', 'google_pay',
+            ])],
+            'is_active' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $payload = [
+            'user_id' => $user->id,
+            'merchant_id' => $data['merchant_id'],
+            'merchant_name' => $data['merchant_name'] ?: ($user->name . ' KHQR'),
+            'environment' => $data['environment'],
+            'currency' => $data['currency'],
+            'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
+            'is_active' => $request->boolean('is_active', true),
+            // Authors cannot mark company platform merchant; admins can via admin CRUD
+            'is_platform' => ($user->isAdmin() || $user->isSuperAdmin())
+                ? $request->boolean('is_platform', $existing?->is_platform ?? false)
+                : false,
+            'notes' => $data['notes'] ?? $existing?->notes,
+        ];
+
+        if (filled($data['api_key'] ?? null)) {
+            $payload['api_key'] = $data['api_key'];
+        } elseif (! $existing) {
+            return response()->json(['message' => 'api_key is required.'], 422);
+        }
+
+        $merchant = AbaPaywayMerchant::updateOrCreate(['user_id' => $user->id], $payload);
+
+        if ($merchant->is_platform) {
+            AbaPaywayMerchant::query()
+                ->where('id', '!=', $merchant->id)
+                ->where('is_platform', true)
+                ->update(['is_platform' => false]);
+        }
+
+        return response()->json([
+            'message' => 'ABA PayWay merchant saved successfully',
+            'data' => $this->present($merchant->fresh()->load('user:id,name,email')),
+        ], $existing ? 200 : 201);
     }
 
     private function present(AbaPaywayMerchant $merchant): array
@@ -184,6 +283,7 @@ class AbaPaywayMerchantController extends Controller
             'payment_option' => $merchant->payment_option ?: 'abapay_khqr',
             'payment_option_label' => $merchant->paymentOptionLabel(),
             'is_active' => (bool) $merchant->is_active,
+            'is_platform' => (bool) $merchant->is_platform,
             'notes' => $merchant->notes,
             'created_at' => $merchant->created_at?->toIso8601String(),
             'updated_at' => $merchant->updated_at?->toIso8601String(),

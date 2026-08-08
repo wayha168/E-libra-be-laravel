@@ -51,13 +51,25 @@ class StripePaymentService
             ],
         ];
 
-        if ($paymentMethod === 'khqr') {
-            $params['payment_method_types'] = ['card', 'khqr'];
+        if ($paymentMethod === 'khqr' || $paymentMethod === 'stripe_khqr') {
+            // KHQR-focused Checkout (Cambodia). Requires Stripe account with KHQR capability.
+            $params['payment_method_types'] = ['khqr'];
         } else {
             $params['payment_method_types'] = ['card'];
         }
 
-        return Session::create($params);
+        try {
+            return Session::create($params);
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            if (($paymentMethod === 'khqr' || $paymentMethod === 'stripe_khqr')
+                && str_contains(strtolower($e->getMessage()), 'payment_method_types')) {
+                throw new \RuntimeException(
+                    'This Stripe account does not support KHQR. Enable KHQR in Stripe (Cambodia) or use payment_method=payway_khqr / card.',
+                    previous: $e
+                );
+            }
+            throw $e;
+        }
     }
 
     public function createSubscriptionCheckoutSession(User $user): Session

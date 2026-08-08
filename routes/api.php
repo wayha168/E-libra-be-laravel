@@ -114,6 +114,13 @@ Route::prefix('v1')->group(function () {
             Route::delete('/payway/merchants/{payway}', [AbaPaywayMerchantController::class, 'destroy']);
         });
 
+        // Author/admin can manage own PayWay credentials in DB
+        Route::middleware(RoleMiddleware::class . ':admin,author,super_admin')->group(function () {
+            Route::get('/payway/me', [AbaPaywayMerchantController::class, 'mine']);
+            Route::put('/payway/me', [AbaPaywayMerchantController::class, 'upsertMine']);
+            Route::post('/payway/me', [AbaPaywayMerchantController::class, 'upsertMine']);
+        });
+
         Route::middleware(RoleMiddleware::class . ':admin,author,super_admin')->group(function () {
             Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
             Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
@@ -142,6 +149,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
+        Route::get('/payway/status', [BooksController::class, 'paywayStatus']);
         Route::post('/books/{book}/request-access', [BooksController::class, 'requestAccess']);
         Route::post('/books/{book}/like', [BookFeedbackController::class, 'toggleLike']);
         Route::post('/books/{book}/comments', [BookFeedbackController::class, 'storeComment']);

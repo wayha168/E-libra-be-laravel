@@ -194,6 +194,13 @@ class BooksController extends Controller
 
         $stripeMethod = $paymentMethod === 'stripe_khqr' ? 'khqr' : 'card';
 
+        if ($paymentMethod === 'stripe_khqr' && ! (bool) config('services.stripe.khqr_enabled', true)) {
+            return response()->json([
+                'message' => 'Stripe KHQR is disabled.',
+                'code' => 'stripe_khqr_disabled',
+            ], 422);
+        }
+
         if ($existing && $existing->status === 'pending' && $existing->stripe_checkout_session_id) {
             $checkoutUrl = null;
 
@@ -253,7 +260,20 @@ class BooksController extends Controller
             ], 201);
         }
 
-        $session = $stripe->createBookCheckoutSession($user, $book, $purchase, $stripeMethod);
+        try {
+            $session = $stripe->createBookCheckoutSession($user, $book, $purchase, $stripeMethod);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => $paymentMethod === 'stripe_khqr' ? 'stripe_khqr_unsupported' : 'stripe_error',
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Unable to create Stripe checkout session.',
+                'code' => 'stripe_error',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 422);
+        }
 
         $purchase->update([
             'stripe_checkout_session_id' => $session->id,
@@ -280,9 +300,18 @@ class BooksController extends Controller
     public function paymentOptions(Books $book, StripePaymentService $stripe, AbaPayWayService $payway)
     {
         $book->loadMissing('author.user');
-        $authorUserId = $book->author?->user_id;
-        $paywayConfigured = $authorUserId ? $payway->isConfiguredFor($authorUserId) : false;
-        $merchant = $authorUserId ? $payway->forUser($authorUserId) : null;
+        $resolved = $payway->resolveForBook($book);
+        $merchant = $resolved['merchant'];
+        $source = $resolved['source'];
+        $paywayConfigured = $payway->isUsable($merchant);
+
+        $sourceLabel = match ($source) {
+            AbaPayWayService::SOURCE_AUTHOR => 'Personal KHQR (author DB)',
+            AbaPayWayService::SOURCE_COMPANY_DB => 'Company KHQR (platform DB)',
+            AbaPayWayService::SOURCE_ADMIN_DB => 'Company KHQR (admin DB)',
+            AbaPayWayService::SOURCE_ENV => 'Company KHQR (.env fallback)',
+            default => 'ABA PayWay KHQR',
+        };
 
         return response()->json([
             'message' => 'Payment options fetched successfully',
@@ -299,17 +328,34 @@ class BooksController extends Controller
                         'label' => 'Card (Stripe)',
                     ],
                     'stripe_khqr' => [
-                        'available' => $stripe->isConfigured() && (bool) config('services.stripe.khqr_enabled', true),
+                        'available' => $stripe->isConfigured() && (bool) config('services.stripe.khqr_enabled', false),
                         'provider' => 'stripe',
                         'label' => 'KHQR (Stripe)',
+                        'note' => (bool) config('services.stripe.khqr_enabled', false)
+                            ? null
+                            : 'Disabled: this Stripe account does not support KHQR. Use payway_khqr.',
                     ],
                     'payway_khqr' => [
                         'available' => $paywayConfigured,
                         'provider' => 'aba_payway',
-                        'label' => 'Personal KHQR (ABA PayWay)',
+                        'label' => $sourceLabel,
                         'merchant_name' => $merchant?->merchant_name,
                         'payment_option' => $merchant?->payment_option ?: 'abapay_khqr',
+                        'source' => $source,
+                        'from_db' => in_array($source, [
+                            AbaPayWayService::SOURCE_AUTHOR,
+                            AbaPayWayService::SOURCE_COMPANY_DB,
+                            AbaPayWayService::SOURCE_ADMIN_DB,
+                        ], true),
                     ],
+                ],
+                'payway_sources' => [
+                    'author' => $book->author?->user_id
+                        ? $payway->isUsable($payway->personalMerchantFor($book->author->user_id))
+                        : false,
+                    'company_db' => $payway->isUsable($payway->companyMerchantFromDb()),
+                    'admin_db' => $payway->isUsable($payway->adminMerchantFromDb()),
+                    'env' => $payway->isUsable($payway->platformMerchantFromEnv()),
                 ],
             ],
         ]);
@@ -421,10 +467,10 @@ class BooksController extends Controller
 
     private function buyWithPayway($user, Books $book, ?UserBuyBook $existing, AbaPayWayService $payway)
     {
-        $authorUserId = $book->author?->user_id;
-        if (! $authorUserId || ! $payway->isConfiguredFor($authorUserId)) {
+        $book->loadMissing('author');
+        if (! $payway->isConfiguredForBook($book)) {
             return response()->json([
-                'message' => 'Author ABA PayWay KHQR is not configured for this book.',
+                'message' => 'ABA PayWay KHQR is not configured. Admin/author must save merchant credentials in DB (or set .env fallback).',
                 'code' => 'payway_not_configured',
             ], 422);
         }
@@ -445,8 +491,8 @@ class BooksController extends Controller
         $purchase->update(['payway_tran_id' => $tranId]);
 
         try {
-            $payload = $payway->buildBookPurchasePayload($user, $book->loadMissing('author'), $purchase->fresh(), [
-                'payment_option' => $payway->forUser($authorUserId)?->payment_option ?: 'abapay_khqr',
+            $khqr = $payway->generateBookKhqr($user, $book, $purchase->fresh(), [
+                'tran_id' => $tranId,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -455,20 +501,139 @@ class BooksController extends Controller
             ], 422);
         }
 
+        $resolved = $payway->resolveForBook($book);
+        $qrReady = filled($khqr['qr_string'] ?? null) || filled($khqr['qr_image'] ?? null);
+        $statusOk = ($khqr['status_code'] ?? null) === null || ($khqr['status_code'] ?? '') === '0';
+
+        if (! $qrReady || ! $statusOk) {
+            event(new PurchaseStatusUpdated($purchase->fresh()));
+            DashboardOverviewController::broadcastStats();
+
+            return response()->json([
+                'message' => $khqr['status_message']
+                    ?: 'ABA PayWay KHQR generation failed. Use hosted checkout fields as fallback.',
+                'code' => 'payway_qr_unavailable',
+                'data' => [
+                    'provider' => 'aba_payway',
+                    'payment_method' => 'payway_khqr',
+                    'merchant_source' => $resolved['source'],
+                    'purchase' => $purchase->fresh(),
+                    'tran_id' => $tranId,
+                    'qr_string' => $khqr['qr_string'] ?? null,
+                    'qr_image' => $khqr['qr_image'] ?? null,
+                    'abapay_deeplink' => $khqr['abapay_deeplink'] ?? null,
+                    'status_code' => $khqr['status_code'] ?? null,
+                    'status_message' => $khqr['status_message'] ?? null,
+                    'endpoint' => $khqr['hosted']['endpoint'] ?? null,
+                    'fields' => $khqr['hosted']['fields'] ?? null,
+                    'status_url' => url('/api/v1/payway/status?tran_id=' . urlencode($tranId)),
+                ],
+            ], 201);
+        }
+
         event(new PurchaseStatusUpdated($purchase->fresh()));
         DashboardOverviewController::broadcastStats();
 
         return response()->json([
-            'message' => 'ABA PayWay KHQR checkout ready',
+            'message' => 'ABA PayWay KHQR generated successfully',
             'data' => [
                 'provider' => 'aba_payway',
                 'payment_method' => 'payway_khqr',
+                'merchant_source' => $resolved['source'],
                 'purchase' => $purchase->fresh(),
-                'endpoint' => $payload['endpoint'],
-                'fields' => $payload['fields'],
                 'tran_id' => $tranId,
+                'amount' => $khqr['amount'],
+                'currency' => $khqr['currency'],
+                'qr_string' => $khqr['qr_string'],
+                'qr_image' => $khqr['qr_image'],
+                'abapay_deeplink' => $khqr['abapay_deeplink'],
+                'app_store' => $khqr['app_store'],
+                'play_store' => $khqr['play_store'],
+                'endpoint' => $khqr['hosted']['endpoint'],
+                'fields' => $khqr['hosted']['fields'],
+                'status_url' => url('/api/v1/payway/status?tran_id=' . urlencode($tranId)),
+                'callback_url' => url('/api/v1/payway/callback'),
             ],
         ], 201);
+    }
+
+    public function paywayStatus(Request $request, AbaPayWayService $payway)
+    {
+        $request->validate([
+            'tran_id' => ['required', 'string', 'max:40'],
+        ]);
+
+        $tranId = $request->string('tran_id')->toString();
+        $purchase = UserBuyBook::query()
+            ->where('payway_tran_id', $tranId)
+            ->with(['book.author'])
+            ->first();
+
+        if (! $purchase) {
+            return response()->json([
+                'message' => 'Purchase not found for this tran_id.',
+            ], 404);
+        }
+
+        $user = $request->user();
+        if ($user && $purchase->user_id !== $user->id && ! $user->isAdmin() && ! $user->isSuperAdmin()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($purchase->status === 'paid') {
+            return response()->json([
+                'message' => 'Purchase already paid.',
+                'data' => [
+                    'local_status' => 'paid',
+                    'purchase' => $purchase,
+                    'author_earnings' => $purchase->authorEarnings(),
+                    'admin_commission_amount' => $purchase->admin_commission_amount,
+                ],
+            ]);
+        }
+
+        $authorUserId = $purchase->book?->author?->user_id;
+        $merchant = $payway->resolveForBook($purchase->book)['merchant']
+            ?? ($authorUserId ? $payway->forUser($authorUserId) : null);
+        if (! $merchant) {
+            return response()->json([
+                'message' => 'ABA PayWay merchant not found for this purchase.',
+                'data' => [
+                    'local_status' => $purchase->status,
+                    'purchase' => $purchase,
+                ],
+            ], 422);
+        }
+
+        $remote = $payway->checkTransaction($merchant, $tranId);
+        $remoteCode = strtolower((string) ($remote['status_code'] ?? ''));
+        $paidRemote = in_array($remoteCode, ['0', 'success', 'approved', 'paid', 'completed'], true)
+            || in_array(strtolower((string) data_get($remote['raw'], 'payment_status', '')), ['0', 'success', 'approved', 'paid'], true);
+
+        if ($paidRemote && $purchase->status !== 'paid') {
+            $purchase->update([
+                'status' => 'paid',
+                'purchased_at' => now(),
+                'payment_method' => $purchase->payment_method ?: 'payway_khqr',
+            ]);
+            $purchase = PurchaseCommission::applyToPurchase($purchase->fresh());
+            event(new PurchaseStatusUpdated($purchase));
+            DashboardOverviewController::broadcastStats();
+        }
+
+        $fresh = $purchase->fresh();
+
+        return response()->json([
+            'message' => 'PayWay transaction status fetched.',
+            'data' => [
+                'local_status' => $fresh->status,
+                'remote_status_code' => $remote['status_code'],
+                'remote_status_message' => $remote['status_message'],
+                'purchase' => $fresh,
+                'author_earnings' => $fresh->status === 'paid' ? $fresh->authorEarnings() : 0,
+                'admin_commission_amount' => $fresh->admin_commission_amount,
+            ],
+        ]);
     }
 
     private function normalizePaymentMethod(?string $method): string

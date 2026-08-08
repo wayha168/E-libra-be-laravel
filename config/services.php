@@ -43,7 +43,7 @@ return [
         'subscription_amount' => env('STRIPE_SUBSCRIPTION_AMOUNT', 9.99),
         'success_url' => env('STRIPE_SUCCESS_URL', env('APP_URL', 'http://localhost') . '/profile?payment=success'),
         'cancel_url' => env('STRIPE_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled'),
-        'khqr_enabled' => env('STRIPE_KHQR_ENABLED', true),
+        'khqr_enabled' => env('STRIPE_KHQR_ENABLED', false),
     ],
 
     'aba_payway' => [
@@ -59,6 +59,10 @@ return [
         'cancel_url' => env('ABA_PAYWAY_CANCEL_URL', env('APP_URL', 'http://localhost') . '/profile?payment=cancelled&provider=payway'),
         'return_url' => env('ABA_PAYWAY_RETURN_URL', env('APP_URL', 'http://localhost') . '/api/v1/payway/callback'),
         'view_type' => env('ABA_PAYWAY_VIEW_TYPE', 'hosted_view'),
+        'qr_image_template' => env('ABA_PAYWAY_QR_IMAGE_TEMPLATE', 'template3_color'),
+        'qr_lifetime_minutes' => (int) env('ABA_PAYWAY_QR_LIFETIME_MINUTES', 30),
+        'merchant_name' => env('ABA_PAYWAY_MERCHANT_NAME', 'e-Libra Platform'),
+        'default_currency' => env('ABA_PAYWAY_DEFAULT_CURRENCY', 'USD'),
     ],
 
     'google' => [

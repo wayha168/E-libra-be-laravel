@@ -51,10 +51,18 @@ class AbaPaywayMerchantController
         $merchant = AbaPaywayMerchant::create([
             ...$data,
             'is_active' => $request->boolean('is_active', true),
+            'is_platform' => $request->boolean('is_platform', false),
             'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
             'notes' => $data['notes'] ?: null,
             'merchant_name' => $data['merchant_name'] ?: null,
         ]);
+
+        if ($merchant->is_platform) {
+            AbaPaywayMerchant::query()
+                ->where('id', '!=', $merchant->id)
+                ->where('is_platform', true)
+                ->update(['is_platform' => false]);
+        }
 
         ActivityLogger::log(
             'payway.created',
@@ -98,6 +106,7 @@ class AbaPaywayMerchantController
             'currency' => $data['currency'],
             'payment_option' => $data['payment_option'] ?: 'abapay_khqr',
             'is_active' => $request->boolean('is_active'),
+            'is_platform' => $request->boolean('is_platform'),
             'notes' => $data['notes'] ?: null,
         ];
 
@@ -106,6 +115,13 @@ class AbaPaywayMerchantController
         }
 
         $payway->update($payload);
+
+        if ($payway->is_platform) {
+            AbaPaywayMerchant::query()
+                ->where('id', '!=', $payway->id)
+                ->where('is_platform', true)
+                ->update(['is_platform' => false]);
+        }
 
         ActivityLogger::log(
             'payway.updated',
@@ -170,6 +186,7 @@ class AbaPaywayMerchantController
                 'google_pay',
             ])],
             'is_active' => ['nullable', 'boolean'],
+            'is_platform' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }

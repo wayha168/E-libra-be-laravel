@@ -76,6 +76,12 @@
         <label for="is_active" class="text-sm text-gray-700">Active</label>
     </div>
 
+    <div class="flex items-center gap-2 pt-6">
+        <input type="hidden" name="is_platform" value="0" />
+        <input type="checkbox" name="is_platform" value="1" id="is_platform" class="rounded border-gray-300" @checked(old('is_platform', $merchant?->is_platform ?? false)) />
+        <label for="is_platform" class="text-sm text-gray-700">Company / platform account (DB fallback for all books)</label>
+    </div>
+
     <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
         <textarea name="notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Optional internal notes">{{ old('notes', $merchant?->notes) }}</textarea>

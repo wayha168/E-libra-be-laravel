@@ -19,12 +19,14 @@ class AbaPaywayMerchant extends Model
         'currency',
         'payment_option',
         'is_active',
+        'is_platform',
         'notes',
     ];
 
     protected $casts = [
         'api_key' => 'encrypted',
         'is_active' => 'boolean',
+        'is_platform' => 'boolean',
     ];
 
     protected $hidden = [
@@ -51,6 +53,16 @@ class AbaPaywayMerchant extends Model
     public function purchaseEndpoint(): string
     {
         return rtrim($this->checkoutBaseUrl(), '/') . '/api/payment-gateway/v1/payments/purchase';
+    }
+
+    public function generateQrEndpoint(): string
+    {
+        return rtrim($this->checkoutBaseUrl(), '/') . '/api/payment-gateway/v1/payments/generate-qr';
+    }
+
+    public function checkTransactionEndpoint(): string
+    {
+        return rtrim($this->checkoutBaseUrl(), '/') . '/api/payment-gateway/v1/payments/check-transaction';
     }
 
     public function maskedApiKey(): string
