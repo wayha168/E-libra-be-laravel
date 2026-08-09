@@ -56,5 +56,29 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# E-libra-be-laravel
-# E-libra-be-laravel
+# E-libra backend
+
+## After `git pull` (styles + `/docs/api`)
+
+`public/build` (Vite CSS/JS) is **not** in git. Scramble API docs are also **cached**.  
+A plain `git pull` will not refresh either — run one of:
+
+```bash
+composer refresh
+```
+
+Or:
+
+```powershell
+.\scripts\refresh-after-pull.ps1
+```
+
+```bash
+bash scripts/refresh-after-pull.sh
+```
+
+Then hard-refresh the browser (`Ctrl+F5`). API docs: `/docs/api`.
+
+### Docker note
+
+`docker-compose.yaml` bind-mounts the project (`./:/var/www/html`), so the image’s built assets are overridden by the host. Always run `composer refresh` (or the script) on the host after pull. Rebuild the image only if you deploy without that volume mount.
