@@ -25,6 +25,13 @@ class AppServiceProvider extends ServiceProvider
                 $openApi->info->title = 'e-libra API';
             });
 
-        Gate::define('viewApiDocs', fn () => app()->environment('local'));
+        // Scramble /docs/api — local always; production when SCRAMBLE_DOCS_ENABLED=true
+        Gate::define('viewApiDocs', function () {
+            if (app()->environment('local')) {
+                return true;
+            }
+
+            return (bool) config('elibra.scramble_docs_enabled', false);
+        });
     }
 }
