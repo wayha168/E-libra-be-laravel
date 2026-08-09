@@ -13,20 +13,24 @@ class PermissionController
 {
     public function index(Request $request): View
     {
-        $query = Permission::query()->with('roles');
+        $roles = Role::query()
+            ->withCount(['permissions', 'users'])
+            ->orderBy('role')
+            ->get();
+
+        $permissionQuery = Permission::query()->with('roles')->orderBy('display_name');
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
             $like = "%{$search}%";
-            $query->where(function ($q) use ($like) {
+            $permissionQuery->where(function ($q) use ($like) {
                 $q->where('display_name', 'like', $like)
                     ->orWhere('name', 'like', $like)
                     ->orWhere('description', 'like', $like);
             });
         }
 
-        $permissions = $query->latest()->paginate(10)->withQueryString();
-        $roles = Role::orderBy('role')->get();
+        $permissions = $permissionQuery->paginate(10)->withQueryString();
 
         $userQuery = User::with(['role.permissions', 'profileImage']);
         if ($request->filled('user_search')) {
@@ -40,7 +44,43 @@ class PermissionController
 
         $users = $userQuery->latest()->paginate(10, ['*'], 'users_page')->withQueryString();
 
-        return view('dashboard.permissions.index', compact('permissions', 'roles', 'users'));
+        return view('dashboard.permissions.index', compact('roles', 'permissions', 'users'));
+    }
+
+    public function editRole(Role $role): View
+    {
+        $role->load(['permissions' => fn ($q) => $q->orderBy('display_name')])
+            ->loadCount(['permissions', 'users']);
+
+        $allPermissions = Permission::query()->orderBy('display_name')->get();
+        $assignedPermissionIds = $role->permissions->pluck('id')->all();
+
+        $roleUsers = User::query()
+            ->with('profileImage')
+            ->where('role_id', $role->id)
+            ->orderBy('name')
+            ->paginate(12);
+
+        return view('dashboard.permissions.roles.edit', compact(
+            'role',
+            'allPermissions',
+            'assignedPermissionIds',
+            'roleUsers'
+        ));
+    }
+
+    public function syncRolePermissions(Request $request, Role $role): \Illuminate\Http\RedirectResponse
+    {
+        $data = $request->validate([
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['uuid', 'exists:permissions,id'],
+        ]);
+
+        SyncsRolePermissions::syncPermissionsForRole($role, $data['permissions'] ?? []);
+
+        return redirect()
+            ->route('dashboard.permissions.roles.edit', $role)
+            ->with('success', "Permissions updated for {$role->display_name}");
     }
 
     public function create(): View

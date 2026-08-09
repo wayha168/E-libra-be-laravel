@@ -28,6 +28,10 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('dashboard')->name('dashboard.')->group(function () {
             Route::middleware('role:admin,super_admin')->group(function () {
                 Route::resource('users', UserController::class);
+                Route::get('permissions/roles/{role}', [PermissionController::class, 'editRole'])
+                    ->name('permissions.roles.edit');
+                Route::put('permissions/roles/{role}', [PermissionController::class, 'syncRolePermissions'])
+                    ->name('permissions.roles.sync');
                 Route::resource('permissions', PermissionController::class);
             });
 

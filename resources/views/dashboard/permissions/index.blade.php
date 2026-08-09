@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto">
-    <div class="flex items-center justify-between gap-3 mb-6">
+    <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div>
             <h1 class="text-2xl font-semibold">Permissions</h1>
-            <p class="text-sm text-gray-600">Manage role permissions and user access</p>
+            <p class="text-sm text-gray-600">Open a role to view users and edit its permissions</p>
         </div>
         <a href="{{ route('dashboard.permissions.create') }}" class="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition inline-flex items-center gap-2">
             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
@@ -22,7 +22,7 @@
     </div>
     @endif
 
-    {{-- Permission Summary Cards --}}
+    {{-- Summary --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl border border-gray-200 p-4">
             <div class="text-xs text-gray-500 uppercase tracking-wide">Total Permissions</div>
@@ -38,9 +38,43 @@
         </div>
     </div>
 
+    {{-- Roles → separate edit pages --}}
+    <div class="mb-8">
+        <div class="mb-3">
+            <h2 class="text-lg font-semibold">Roles</h2>
+            <p class="text-sm text-gray-500">Select a role to open its page — see who belongs to it and edit permissions</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            @foreach($roles as $role)
+            @php
+                $roleBadge = match ($role->role) {
+                    'super_admin' => 'bg-purple-50 text-purple-700',
+                    'admin' => 'bg-blue-50 text-blue-700',
+                    'author' => 'bg-amber-50 text-amber-700',
+                    default => 'bg-gray-100 text-gray-600',
+                };
+            @endphp
+            <a href="{{ route('dashboard.permissions.roles.edit', $role) }}" class="block bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-400 hover:shadow-sm transition group">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <div class="text-base font-semibold text-gray-900 group-hover:text-black">{{ $role->display_name }}</div>
+                        <div class="text-xs text-gray-400 font-mono mt-0.5">{{ $role->role }}</div>
+                    </div>
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium {{ $roleBadge }}">{{ $role->permissions_count }} perms</span>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
+                    <span>{{ $role->users_count }} {{ Str::plural('user', $role->users_count) }}</span>
+                    <span class="text-blue-600 font-medium group-hover:underline">Open →</span>
+                </div>
+            </a>
+            @endforeach
+        </div>
+    </div>
+
     {{-- Permissions Table --}}
     <div class="mb-8">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
             <h2 class="text-lg font-semibold">All Permissions</h2>
             <x-search-filter
                 :action="route('dashboard.permissions.index')"
@@ -69,12 +103,13 @@
                         <td class="px-4 py-3 text-gray-600">{{ $permission->description ?: '-' }}</td>
                         <td class="px-4 py-3">
                             @forelse($permission->roles as $role)
-                            <span class="inline-flex px-2 py-0.5 mr-1 mb-1 rounded-full text-xs font-medium
+                            <a href="{{ route('dashboard.permissions.roles.edit', $role) }}" class="inline-flex px-2 py-0.5 mr-1 mb-1 rounded-full text-xs font-medium hover:opacity-80 transition
                                 @if($role->role === 'super_admin') bg-purple-50 text-purple-700
                                 @elseif($role->role === 'admin') bg-blue-50 text-blue-700
+                                @elseif($role->role === 'author') bg-amber-50 text-amber-700
                                 @else bg-gray-100 text-gray-600
                                 @endif
-                            ">{{ $role->display_name }}</span>
+                            ">{{ $role->display_name }}</a>
                             @empty
                             <span class="text-gray-400 text-xs">No roles</span>
                             @endforelse
@@ -92,8 +127,8 @@
                     @empty
                     <tr>
                         <td colspan="4" class="px-4 py-8 text-center text-gray-400">
-                            <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
                             No permissions found.
+                            <a href="{{ route('dashboard.permissions.create') }}" class="text-blue-600 hover:underline ml-1">Add one</a>
                         </td>
                     </tr>
                     @endforelse
@@ -143,13 +178,17 @@
                         </td>
                         <td class="px-4 py-3 text-gray-600">{{ $user->email }}</td>
                         <td class="px-4 py-3">
-                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
-                                @if($user->role?->role === 'super_admin') bg-purple-50 text-purple-700
-                                @elseif($user->role?->role === 'admin') bg-blue-50 text-blue-700
-                                @elseif($user->role?->role === 'author') bg-amber-50 text-amber-700
+                            @if($user->role)
+                            <a href="{{ route('dashboard.permissions.roles.edit', $user->role) }}" class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition
+                                @if($user->role->role === 'super_admin') bg-purple-50 text-purple-700
+                                @elseif($user->role->role === 'admin') bg-blue-50 text-blue-700
+                                @elseif($user->role->role === 'author') bg-amber-50 text-amber-700
                                 @else bg-gray-100 text-gray-600
                                 @endif
-                            ">{{ $user->display_role }}</span>
+                            ">{{ $user->display_role }}</a>
+                            @else
+                            <span class="text-gray-400 text-xs">—</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3 text-center">
                             @if($user->isSuperAdmin())

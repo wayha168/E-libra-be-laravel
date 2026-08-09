@@ -141,7 +141,7 @@
                 </button>
                 <div id="permissions-submenu" class="aside-accordion-panel overflow-hidden transition-all duration-200 max-h-0" style="max-height:0">
                     <div class="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-200 pl-3">
-                        <a href="{{ route('dashboard.permissions.index') }}" class="block px-2 py-1.5 rounded text-sm {{ request()->routeIs('dashboard.permissions.index') ? 'text-black font-medium' : 'text-gray-600 hover:text-black hover:bg-gray-50' }} transition" data-i18n="all_permissions">All Permissions</a>
+                        <a href="{{ route('dashboard.permissions.index') }}" class="block px-2 py-1.5 rounded text-sm {{ request()->routeIs('dashboard.permissions.index') || request()->routeIs('dashboard.permissions.roles.*') ? 'text-black font-medium' : 'text-gray-600 hover:text-black hover:bg-gray-50' }} transition" data-i18n="all_permissions">All Permissions</a>
                         <a href="{{ route('dashboard.permissions.create') }}" class="block px-2 py-1.5 rounded text-sm {{ request()->routeIs('dashboard.permissions.create') ? 'text-black font-medium' : 'text-gray-600 hover:text-black hover:bg-gray-50' }} transition" data-i18n="add_permission">Add Permission</a>
                     </div>
                 </div>
