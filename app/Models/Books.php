@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\BookPublishService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +21,9 @@ class Books extends Model
         'image_id',
         'public_date',
         'price',
+        'status',
+        'scheduled_at',
+        'published_at',
         'pdf_file',
         'pdf_preview_path',
     ];
@@ -31,7 +36,34 @@ class Books extends Model
     protected $casts = [
         'price' => 'float',
         'public_date' => 'date',
+        'scheduled_at' => 'datetime',
+        'published_at' => 'datetime',
     ];
+
+    public function isPublished(): bool
+    {
+        return ($this->status ?? BookPublishService::STATUS_PUBLISHED) === BookPublishService::STATUS_PUBLISHED;
+    }
+
+    public function isScheduled(): bool
+    {
+        return $this->status === BookPublishService::STATUS_SCHEDULED;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === BookPublishService::STATUS_DRAFT;
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', BookPublishService::STATUS_PUBLISHED);
+    }
+
+    public function scopeVisibleToPublic(Builder $query): Builder
+    {
+        return $query->published();
+    }
 
     public function author()
     {

@@ -6,6 +6,7 @@ use App\Models\Author;
 use App\Models\Books;
 use App\Models\Promotion;
 use App\Support\AuthorScope;
+use App\Support\PromotionNotificationHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -101,6 +102,7 @@ class PromotionController extends Controller
         $this->authorizePayload($request, $data);
 
         $promotion = Promotion::create($this->makePayload($request, $data));
+        PromotionNotificationHandler::handleCreated($promotion->fresh());
 
         return response()->json([
             'message' => 'Promotion created successfully',

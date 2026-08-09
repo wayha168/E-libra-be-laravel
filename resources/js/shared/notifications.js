@@ -27,12 +27,69 @@ function ensureToastContainer() {
     return toastContainer;
 }
 
+function playAlertSound(kind = "default") {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        const tones =
+            kind === "purchase"
+                ? [
+                      { f: 880, t: 0, d: 0.12 },
+                      { f: 1174.66, t: 0.1, d: 0.16 },
+                      { f: 1396.91, t: 0.22, d: 0.22 },
+                  ]
+                : kind === "chat"
+                  ? [
+                        { f: 740, t: 0, d: 0.1 },
+                        { f: 988, t: 0.12, d: 0.14 },
+                    ]
+                  : [{ f: 820, t: 0, d: 0.12 }];
+
+        for (const tone of tones) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = tone.f;
+            gain.gain.setValueAtTime(0.0001, now + tone.t);
+            gain.gain.exponentialRampToValueAtTime(0.18, now + tone.t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + tone.t + tone.d);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + tone.t);
+            osc.stop(now + tone.t + tone.d + 0.02);
+        }
+
+        window.setTimeout(() => ctx.close().catch(() => {}), 800);
+    } catch {
+        /* ignore autoplay / AudioContext failures */
+    }
+}
+
+function soundKindForNotification(type) {
+    const t = String(type || "");
+    if (t.startsWith("purchase.")) return "purchase";
+    if (t === "chat.message") return "chat";
+    return null;
+}
+
 function notificationDetailUrl(notification) {
     const data = notification?.data || {};
     const type = String(notification?.type || "");
 
     if (data.purchase_id && type.startsWith("purchase.")) {
         return `/dashboard/purchases/${data.purchase_id}`;
+    }
+
+    if (type === "chat.message") {
+        return null;
+    }
+
+    if (type === "promotion.new" && data.book_id) {
+        return `/dashboard/books/${data.book_id}`;
     }
 
     if (data.book_id) {
@@ -66,10 +123,24 @@ function notificationIconConfig(type) {
         };
     }
 
-    if (t.startsWith("recommendation.")) {
+    if (t.startsWith("recommendation.") || t === "book.released") {
         return {
             bg: "bg-purple-100 text-purple-700",
             svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />',
+        };
+    }
+
+    if (t === "promotion.new") {
+        return {
+            bg: "bg-orange-100 text-orange-700",
+            svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />',
+        };
+    }
+
+    if (t === "chat.message") {
+        return {
+            bg: "bg-indigo-100 text-indigo-700",
+            svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />',
         };
     }
 
@@ -361,6 +432,9 @@ function applyIncomingNotification(notification, { toast = true, bumpBadge = tru
     if (!notification?.id || isKnown(notification.id)) return false;
 
     knownIds.add(String(notification.id));
+
+    const sound = soundKindForNotification(notification.type);
+    if (sound) playAlertSound(sound);
 
     if (toast) showToast(notification);
     if (bumpBadge) updateBadge(unreadCount + 1);

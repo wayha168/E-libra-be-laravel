@@ -6,6 +6,7 @@ use App\Models\Author;
 use App\Models\Books;
 use App\Models\Promotion;
 use App\Support\AuthorScope;
+use App\Support\PromotionNotificationHandler;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -53,7 +54,8 @@ class PromotionController
         $data = $this->validateData($request);
         $this->authorizePayload($request, $data);
 
-        Promotion::create($this->payload($request, $data));
+        $promotion = Promotion::create($this->payload($request, $data));
+        PromotionNotificationHandler::handleCreated($promotion->fresh());
 
         return redirect()
             ->route('dashboard.promotions.index')

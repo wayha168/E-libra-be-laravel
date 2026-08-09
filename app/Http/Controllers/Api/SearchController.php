@@ -169,6 +169,7 @@ class SearchController extends Controller
     private function booksBaseQuery(): Builder
     {
         return Books::query()
+            ->published()
             ->with(['category', 'author.user', 'image', 'images'])
             ->withCount([
                 'likes',

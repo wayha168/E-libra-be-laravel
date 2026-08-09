@@ -15,6 +15,7 @@ use App\Support\AuthorScope;
 use App\Support\BookAccess;
 use App\Support\BookPdfStorage;
 use App\Support\BookPricing;
+use App\Support\BookPublishService;
 use App\Support\BookRecommendationService;
 use App\Support\BookTrialAccess;
 use App\Support\PurchaseCommission;
@@ -30,6 +31,14 @@ class BooksController extends Controller
     public function index(Request $request)
     {
         $query = Books::query()->with('category');
+        $user = auth('sanctum')->user();
+
+        // Guests / customers only see published books; staff & authors see manage scope
+        if (! $this->canManageCatalog($user)) {
+            $query->published();
+        } elseif (AuthorScope::isAuthorOnly($user)) {
+            $query->where('author_id', AuthorScope::authorIdOrAbort($user));
+        }
 
         // Filters
         if ($request->filled('search')) {
@@ -52,7 +61,10 @@ class BooksController extends Controller
             $query->whereDate('public_date', $request->string('public_date')->toString());
         }
 
-        $user = auth('sanctum')->user();
+        if ($request->filled('status') && $this->canManageCatalog($user)) {
+            $query->where('status', $request->string('status')->toString());
+        }
+
         $books = $query->latest()->paginate(10);
 
         $books->getCollection()->transform(function ($book) use ($user) {
@@ -90,12 +102,13 @@ class BooksController extends Controller
             }
         }
 
+        $previousStatus = null;
         $book = Books::create($data);
         StoresUploadedImages::attachToBook($book, $imageIds);
         $book->load(['category', 'author.user', 'image']);
         BookAccess::appendAccessMeta($book, $user);
 
-        BookRecommendationService::notifyInterestedUsers($book);
+        BookPublishService::afterSaved($book, $previousStatus);
 
         return response()->json([
             'message' => 'Book created successfully',
@@ -106,6 +119,8 @@ class BooksController extends Controller
     public function show(Books $book)
     {
         $user = auth('sanctum')->user();
+        $this->ensureBookVisible($book, $user);
+
         $book->load(['category', 'author.user.abaPaywayMerchant', 'image']);
         BookAccess::appendAccessMeta($book, $user);
         $this->appendFeedbackMeta($book, $user);
@@ -121,7 +136,8 @@ class BooksController extends Controller
     {
         AuthorScope::ensureOwnsBook($request->user(), $book);
 
-        $data = $this->bookPayloadFromRequest($request);
+        $previousStatus = $book->status;
+        $data = $this->bookPayloadFromRequest($request, $book);
 
         if (AuthorScope::isAuthorOnly($request->user())) {
             $data['author_id'] = AuthorScope::authorIdOrAbort($request->user());
@@ -145,6 +161,8 @@ class BooksController extends Controller
         $book = $book->fresh(['category', 'author.user', 'image']);
         BookAccess::appendAccessMeta($book, $request->user());
 
+        BookPublishService::afterSaved($book, $previousStatus);
+
         return response()->json([
             'message' => 'Book updated successfully',
             'data' => $book,
@@ -163,6 +181,8 @@ class BooksController extends Controller
 
     public function buy(Request $request, Books $book, StripePaymentService $stripe, AbaPayWayService $payway)
     {
+        $this->ensureBookVisible($book, $request->user());
+
         $request->validate([
             'payment_method' => 'nullable|in:card,khqr,stripe_khqr,payway_khqr',
         ]);
@@ -299,6 +319,8 @@ class BooksController extends Controller
 
     public function paymentOptions(Books $book, StripePaymentService $stripe, AbaPayWayService $payway)
     {
+        $this->ensureBookVisible($book, auth('sanctum')->user());
+
         $book->loadMissing('author.user');
         $resolved = $payway->resolveForBook($book);
         $merchant = $resolved['merchant'];
@@ -403,6 +425,7 @@ class BooksController extends Controller
     {
         // Optional auth: guests can read free books; paid books still require purchase/trial
         $user = $request->user('sanctum') ?? auth('sanctum')->user();
+        $this->ensureBookVisible($book, $user);
 
         if (! BookAccess::canAccessFull($user, $book) && $user) {
             $claim = BookTrialAccess::claim($user, $book);
@@ -444,6 +467,7 @@ class BooksController extends Controller
     public function preview(Books $book)
     {
         $user = auth('sanctum')->user();
+        $this->ensureBookVisible($book, $user);
 
         if (BookAccess::canAccessFull($user, $book)) {
             return response()->json([
@@ -649,12 +673,40 @@ class BooksController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function bookPayloadFromRequest(StoreBooksRequest|UpdateBooksRequest $request): array
+    private function bookPayloadFromRequest(StoreBooksRequest|UpdateBooksRequest $request, ?Books $existing = null): array
     {
         $data = $request->validated();
         unset($data['image_file'], $data['image_files'], $data['pdf_file']);
 
-        return $data;
+        return BookPublishService::applyFromRequest($data, $existing);
+    }
+
+    private function canManageCatalog($user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin())
+            || (method_exists($user, 'isAdmin') && $user->isAdmin())
+            || (method_exists($user, 'isAuthor') && $user->isAuthor());
+    }
+
+    private function ensureBookVisible(Books $book, $user): void
+    {
+        if ($book->isPublished()) {
+            return;
+        }
+
+        if ($this->canManageCatalog($user)) {
+            if (AuthorScope::isAuthorOnly($user)) {
+                AuthorScope::ensureOwnsBook($user, $book);
+            }
+
+            return;
+        }
+
+        abort(404, 'Book not found.');
     }
 
     /**

@@ -31,6 +31,31 @@
             </div>
         </div>
 
+        <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-800 mb-2">Publish</label>
+                <div class="flex flex-col sm:flex-row gap-3 text-sm">
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="now" {{ old('publish_mode', 'now') === 'now' ? 'checked' : '' }} />
+                        Publish now
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="schedule" {{ old('publish_mode') === 'schedule' ? 'checked' : '' }} />
+                        Schedule for later
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="draft" {{ old('publish_mode') === 'draft' ? 'checked' : '' }} />
+                        Save as draft
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Schedule date &amp; time</label>
+                <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" />
+                <p class="text-xs text-gray-500 mt-1">Required when scheduling. Users are notified when the book goes live.</p>
+            </div>
+        </div>
+
         <div>
             <label class="block text-sm text-gray-600 mb-1">Description</label>
             <textarea name="description" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" rows="3">{{ old('description') }}</textarea>

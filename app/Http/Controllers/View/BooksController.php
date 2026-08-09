@@ -13,7 +13,7 @@ use App\Models\UserBuyBook;
 use App\Support\AuthorScope;
 use App\Support\BookAccess;
 use App\Support\BookPdfStorage;
-use App\Support\BookRecommendationService;
+use App\Support\BookPublishService;
 use App\Support\StoresUploadedFiles;
 use App\Support\StoresUploadedImages;
 use Illuminate\Http\RedirectResponse;
@@ -106,15 +106,22 @@ class BooksController
             }
         }
 
+        $data = BookPublishService::applyFromRequest($data);
         $book = Books::create($data);
 
         StoresUploadedImages::attachToBook($book, $imageIds);
 
-        BookRecommendationService::notifyInterestedUsers($book->load('category'));
+        BookPublishService::afterSaved($book, null);
 
         DashboardOverviewController::broadcastStats();
 
-        return redirect()->route('dashboard.books.index')->with('success', 'Book created successfully');
+        $message = match ($book->status) {
+            BookPublishService::STATUS_SCHEDULED => 'Book scheduled successfully',
+            BookPublishService::STATUS_DRAFT => 'Book saved as draft',
+            default => 'Book published successfully',
+        };
+
+        return redirect()->route('dashboard.books.index')->with('success', $message);
     }
 
     public function show(Books $book): View
@@ -232,9 +239,13 @@ class BooksController
             }
         }
 
+        $previousStatus = $book->status;
+        $data = BookPublishService::applyFromRequest($data, $book);
         $book->update($data);
 
         StoresUploadedImages::attachToBook($book->fresh(), $newImageIds);
+
+        BookPublishService::afterSaved($book->fresh(), $previousStatus);
 
         return redirect()->route('dashboard.books.index')->with('success', 'Book updated successfully');
     }

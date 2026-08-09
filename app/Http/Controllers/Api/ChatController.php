@@ -6,8 +6,10 @@ use App\Events\ChatMessageSent;
 use App\Http\Responses\ApiResponses;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
+use App\Support\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
@@ -88,6 +90,21 @@ class ChatController extends Controller
         $message->load('sender.role', 'sender.profileImage');
 
         broadcast(new ChatMessageSent($message));
+
+        foreach (NotificationService::staffUsers() as $admin) {
+            NotificationService::send(
+                $admin,
+                'chat.message',
+                'New support chat message',
+                "{$user->name}: " . Str::limit((string) $message->message, 120),
+                [
+                    'conversation_id' => $conversation->id,
+                    'message_id' => $message->id,
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                ],
+            );
+        }
 
         return ApiResponses::created('Message sent', $message->toArray());
     }

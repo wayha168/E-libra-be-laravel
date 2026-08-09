@@ -24,6 +24,8 @@ class UpdateBooksRequest extends FormRequest
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'image_id' => ['nullable', 'uuid', 'exists:images,id'],
             'public_date' => ['nullable', 'date'],
+            'publish_mode' => ['nullable', 'string', 'in:now,schedule,draft'],
+            'scheduled_at' => ['nullable', 'date'],
             'image_file' => ['nullable', 'image', 'max:5120'],
             'image_files' => ['nullable', 'array'],
             'image_files.*' => ['image', 'max:5120'],

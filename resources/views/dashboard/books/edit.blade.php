@@ -38,6 +38,35 @@
             </div>
         </div>
 
+        @php
+            $currentMode = old('publish_mode', $book->isScheduled() ? 'schedule' : ($book->isDraft() ? 'draft' : 'now'));
+            $scheduledValue = old('scheduled_at', optional($book->scheduled_at)->format('Y-m-d\TH:i'));
+        @endphp
+        <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-800 mb-1">Publish status</label>
+                <p class="text-xs text-gray-500 mb-2">Current: <span class="font-medium text-gray-800">{{ $book->status ?? 'published' }}</span></p>
+                <div class="flex flex-col sm:flex-row gap-3 text-sm">
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="now" {{ $currentMode === 'now' ? 'checked' : '' }} />
+                        Publish now
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="schedule" {{ $currentMode === 'schedule' ? 'checked' : '' }} />
+                        Schedule for later
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        <input type="radio" name="publish_mode" value="draft" {{ $currentMode === 'draft' ? 'checked' : '' }} />
+                        Save as draft
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Schedule date &amp; time</label>
+                <input type="datetime-local" name="scheduled_at" value="{{ $scheduledValue }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40" />
+            </div>
+        </div>
+
         <div>
             <label class="block text-sm text-gray-600 mb-1">Description</label>
             <textarea name="description" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900/40">{{ old('description', $book->description) }}</textarea>

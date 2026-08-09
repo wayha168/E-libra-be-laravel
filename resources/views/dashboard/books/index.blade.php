@@ -33,6 +33,7 @@
                     <th class="text-left px-4 py-2">Author</th>
                     @endif
                     <th class="text-left px-4 py-2">Category</th>
+                    <th class="text-left px-4 py-2">Status</th>
                     <th class="text-left px-4 py-2">Price</th>
                     <th class="text-left px-4 py-2">Likes</th>
                     <th class="text-left px-4 py-2">Comments</th>
@@ -49,6 +50,16 @@
                     <td class="px-4 py-2">{{ $book->author?->user?->name ?? '—' }}</td>
                     @endif
                     <td class="px-4 py-2">{{ $book->category?->name ?? '—' }}</td>
+                    <td class="px-4 py-2">
+                        @php $status = $book->status ?? 'published'; @endphp
+                        @if($status === 'published')
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700">Published</span>
+                        @elseif($status === 'scheduled')
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] bg-amber-50 text-amber-700" title="{{ optional($book->scheduled_at)->format('Y-m-d H:i') }}">Scheduled</span>
+                        @else
+                            <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-600">Draft</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-2">${{ number_format((float) ($book->price ?? 0), 2) }}</td>
                     <td class="px-4 py-2">{{ $book->likes_count ?? 0 }}</td>
                     <td class="px-4 py-2">{{ $book->comments_count ?? 0 }}</td>
@@ -62,7 +73,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="{{ ($isAuthorView ?? false) ? 8 : 9 }}" class="px-4 py-6 text-center text-gray-400">No books found.</td>
+                    <td colspan="{{ ($isAuthorView ?? false) ? 9 : 10 }}" class="px-4 py-6 text-center text-gray-400">No books found.</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -270,6 +270,7 @@ class BookRecommendationService
     private static function booksWithPurchaseCount(): Builder
     {
         return Books::query()
+            ->published()
             ->with(['category', 'author.user'])
             ->withCount([
                 'purchases as paid_purchases_count' => fn (Builder $q) => $q->where('status', 'paid'),
