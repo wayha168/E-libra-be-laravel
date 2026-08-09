@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\Image;
 use App\Models\Books;
+use App\Models\Image;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,11 +16,12 @@ class StoresUploadedImages
             return null;
         }
 
-        $path = $file->store('uploads/' . $type, 'public');
+        $path = $file->store('uploads/'.$type, 'public');
 
         $image = Image::create([
-            'url' => Storage::disk('public')->url($path),
-            'alt_text' => $alt ?? $file->getClientOriginalName(),
+            // Store disk-relative path; Image::url accessor exposes /storage/...
+            'url' => $path,
+            'alt_text' => $alt ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
             'image_type' => $type,
         ]);
 
@@ -75,16 +76,16 @@ class StoresUploadedImages
 
     public static function replaceFile(Image $image, UploadedFile $file, string $type = 'general', ?string $alt = null): void
     {
-        $relativePath = self::relativePathFromUrl($image->url);
+        $relativePath = $image->diskPath();
         if ($relativePath && Storage::disk('public')->exists($relativePath)) {
             Storage::disk('public')->delete($relativePath);
         }
 
-        $path = $file->store('uploads/' . $type, 'public');
+        $path = $file->store('uploads/'.$type, 'public');
 
         $image->update([
-            'url' => Storage::disk('public')->url($path),
-            'alt_text' => $alt ?? $file->getClientOriginalName(),
+            'url' => $path,
+            'alt_text' => $alt ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
             'image_type' => $type,
         ]);
     }
@@ -100,27 +101,11 @@ class StoresUploadedImages
             return;
         }
 
-        $relativePath = self::relativePathFromUrl($image->url);
+        $relativePath = $image->diskPath();
         if ($relativePath && Storage::disk('public')->exists($relativePath)) {
             Storage::disk('public')->delete($relativePath);
         }
 
         $image->delete();
-    }
-
-    private static function relativePathFromUrl(?string $url): ?string
-    {
-        if (!$url) {
-            return null;
-        }
-
-        $storagePrefix = '/storage/';
-        $position = strpos($url, $storagePrefix);
-
-        if ($position === false) {
-            return null;
-        }
-
-        return Str::after($url, $storagePrefix);
     }
 }

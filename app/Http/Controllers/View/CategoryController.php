@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardOverviewController;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
+use App\Support\StoresUploadedImages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,6 +55,24 @@ class CategoryController
         $this->authorize('create', Category::class);
 
         $data = $request->validated();
+        unset($data['image_file'], $data['banner_image_file']);
+
+        if ($request->hasFile('image_file')) {
+            $data['image_id'] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'category',
+                $data['name'] ?? 'Category'
+            );
+        }
+
+        if ($request->hasFile('banner_image_file')) {
+            $data['banner_image_id'] = StoresUploadedImages::store(
+                $request->file('banner_image_file'),
+                'category_banner',
+                ($data['name'] ?? 'Category').' banner'
+            );
+        }
+
         Category::create($data);
 
         DashboardOverviewController::broadcastStats();
@@ -80,6 +99,24 @@ class CategoryController
         $this->authorize('update', $category);
 
         $data = $request->validated();
+        unset($data['image_file'], $data['banner_image_file']);
+
+        if ($request->hasFile('image_file')) {
+            $data['image_id'] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'category',
+                $data['name'] ?? $category->name
+            );
+        }
+
+        if ($request->hasFile('banner_image_file')) {
+            $data['banner_image_id'] = StoresUploadedImages::store(
+                $request->file('banner_image_file'),
+                'category_banner',
+                ($data['name'] ?? $category->name).' banner'
+            );
+        }
+
         $category->update($data);
 
         return redirect()->route('dashboard.categories.index')->with('success', 'Category updated successfully');
@@ -90,6 +127,8 @@ class CategoryController
         $this->authorize('delete', $category);
 
         $category->delete();
+
+        DashboardOverviewController::broadcastStats();
 
         return redirect()->route('dashboard.categories.index')->with('success', 'Category deleted successfully');
     }

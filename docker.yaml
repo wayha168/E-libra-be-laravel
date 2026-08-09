@@ -18,8 +18,10 @@ services:
       MYSQL_DATABASE: e-libra
       MYSQL_USER: root
       MYSQL_PASSWORD: root
-    ports:
-      - '3306:3306'
+    # Do not bind host :3306 — often already used by system MySQL.
+    # Optional host access: '3307:3306'
+    # ports:
+    #   - '3307:3306'
     volumes:
       - db_data:/var/lib/mysql
 

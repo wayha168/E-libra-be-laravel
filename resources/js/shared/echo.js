@@ -13,8 +13,33 @@ function reverbHost() {
         return configured;
     }
 
-    // Prefer page hostname so local WS matches the browser origin
+    // Prefer page hostname so local/prod WS matches the browser origin
     return window.location.hostname || configured || "127.0.0.1";
+}
+
+/**
+ * On HTTPS pages always use WSS (mixed-content blocks ws://).
+ * Prefer same-origin ports (443/80) so nginx can proxy /app → Reverb.
+ */
+function reverbConnection() {
+    const pageIsHttps = window.location.protocol === "https:";
+    const configuredScheme = import.meta.env.VITE_REVERB_SCHEME;
+    const scheme = pageIsHttps ? "https" : configuredScheme || "http";
+    const forceTLS = scheme === "https";
+
+    const configuredPort = import.meta.env.VITE_REVERB_PORT;
+    let port;
+    if (configuredPort !== undefined && configuredPort !== null && String(configuredPort) !== "") {
+        port = Number(configuredPort);
+        // Built with local :8080 but page is HTTPS → use 443 (nginx proxy)
+        if (pageIsHttps && (port === 8080 || port === 80)) {
+            port = 443;
+        }
+    } else {
+        port = forceTLS ? 443 : 8080;
+    }
+
+    return { scheme, forceTLS, port };
 }
 
 export function isEchoConnected() {
@@ -38,9 +63,7 @@ export function initEcho(token) {
     }
 
     const host = reverbHost();
-    const scheme = import.meta.env.VITE_REVERB_SCHEME || window.location.protocol.replace(":", "") || "http";
-    const port = Number(import.meta.env.VITE_REVERB_PORT || 8080);
-    const forceTLS = scheme === "https";
+    const { forceTLS, port } = reverbConnection();
 
     try {
         echoInstance = new Echo({
@@ -52,7 +75,6 @@ export function initEcho(token) {
             forceTLS,
             enabledTransports: ["ws", "wss"],
             disableStats: true,
-            // Snappier dead-connection detection / reconnect
             activityTimeout: 30_000,
             pongTimeout: 10_000,
             authEndpoint: "/api/v1/broadcasting/auth",
@@ -82,7 +104,6 @@ export function initEcho(token) {
                 connected = false;
             });
 
-            // If already connected by the time we bind
             if (connection.state === "connected") {
                 connected = true;
             }

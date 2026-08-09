@@ -121,10 +121,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/payway/me', [AbaPaywayMerchantController::class, 'upsertMine']);
         });
 
+        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+        Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
+        Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
+
         Route::middleware(RoleMiddleware::class . ':admin,author,super_admin')->group(function () {
-            Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
-            Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
-            Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
             Route::get('/activities', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
         });
 

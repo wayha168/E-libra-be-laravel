@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\StoreImageRequest;
 use App\Http\Requests\UpdateImageRequest;
 use App\Models\Image;
+use App\Support\StoresUploadedImages;
 use Illuminate\Http\Request;
 
 class ImageController extends Controller
@@ -30,7 +31,22 @@ class ImageController extends Controller
 
     public function store(StoreImageRequest $request)
     {
-        $image = Image::create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image_file')) {
+            $id = StoresUploadedImages::store(
+                $request->file('image_file'),
+                $data['image_type'] ?? 'general',
+                $data['alt_text'] ?? null
+            );
+            $image = Image::query()->findOrFail($id);
+        } else {
+            $image = Image::create([
+                'url' => $data['url'],
+                'alt_text' => $data['alt_text'] ?? null,
+                'image_type' => $data['image_type'] ?? null,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Image created successfully',
@@ -48,17 +64,36 @@ class ImageController extends Controller
 
     public function update(UpdateImageRequest $request, Image $image)
     {
-        $image->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image_file')) {
+            StoresUploadedImages::replaceFile(
+                $image,
+                $request->file('image_file'),
+                $data['image_type'] ?? $image->image_type ?? 'general',
+                $data['alt_text'] ?? null
+            );
+            $image->refresh();
+        } else {
+            $payload = [
+                'alt_text' => $data['alt_text'] ?? $image->alt_text,
+                'image_type' => $data['image_type'] ?? $image->image_type,
+            ];
+            if (! empty($data['url'])) {
+                $payload['url'] = $data['url'];
+            }
+            $image->update($payload);
+        }
 
         return response()->json([
             'message' => 'Image updated successfully',
-            'data' => $image,
+            'data' => $image->fresh(),
         ]);
     }
 
     public function destroy(Image $image)
     {
-        $image->delete();
+        StoresUploadedImages::deleteById($image->id);
 
         return response()->json([
             'message' => 'Image deleted successfully',

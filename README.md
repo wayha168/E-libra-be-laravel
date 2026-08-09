@@ -82,3 +82,47 @@ Then hard-refresh the browser (`Ctrl+F5`). API docs: `/docs/api`.
 ### Docker note
 
 `docker-compose.yaml` bind-mounts the project (`./:/var/www/html`), so the image’s built assets are overridden by the host. Always run `composer refresh` (or the script) on the host after pull. Rebuild the image only if you deploy without that volume mount.
+
+MySQL is **not** published on host `:3306` (avoids conflict with system MySQL). The app uses `DB_HOST=db`. To connect from the host, map `3307:3306` in compose.
+
+## Live notifications (Telegram vs dashboard)
+
+Telegram alerts are plain HTTP and work without WebSockets.
+
+In-app toast / bell / badge need **Laravel Reverb**:
+
+```bash
+# local (also included in `composer dev`)
+php artisan reverb:start
+```
+
+Docker Compose includes a `reverb` service on port **8080**.
+
+Production (`https://elibra.skinme.store`): run Reverb on the server and proxy WebSockets through nginx, e.g.:
+
+```nginx
+location /app {
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_pass http://127.0.0.1:8080;
+}
+```
+
+Then set:
+
+```env
+BROADCAST_CONNECTION=reverb
+REVERB_HOST=elibra.skinme.store
+REVERB_PORT=443
+REVERB_SCHEME=https
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT=443
+VITE_REVERB_SCHEME=https
+```
+
+Rebuild assets (`npm run build`) after changing `VITE_*`. Keep the dashboard open as **admin/author** to see the bell; polling still refreshes every ~5s if WebSocket is down.
+

@@ -22,6 +22,7 @@
         <div>
             <label class="block text-sm text-gray-600 mb-1">Upload image</label>
             <input type="file" name="image_file" accept="image/*" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            <div data-image-preview class="mt-2 flex flex-wrap gap-2"></div>
         </div>
 
         <div>

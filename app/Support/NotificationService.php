@@ -21,7 +21,12 @@ class NotificationService
             'data' => $data ?: null,
         ]);
 
-        event(new AppNotificationCreated($notification));
+        try {
+            event(new AppNotificationCreated($notification));
+        } catch (\Throwable $e) {
+            // Keep DB + Telegram flow working even when Reverb is down
+            report($e);
+        }
 
         return $notification;
     }

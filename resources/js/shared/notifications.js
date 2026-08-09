@@ -3,7 +3,7 @@ import { fetchJson, postJson } from "./api.js";
 import { initEcho, isEchoConnected } from "./echo.js";
 
 const POLL_MS_LIVE = 60_000;
-const POLL_MS_FALLBACK = 12_000;
+const POLL_MS_FALLBACK = 5_000;
 
 let toastContainer = null;
 let unreadCount = 0;
@@ -116,7 +116,34 @@ function readDotMarkup(unread) {
     return '<span class="shrink-0 w-2 h-2 rounded-full bg-gray-300" title="Read" aria-label="Read"></span>';
 }
 
+function showBrowserAlert(notification) {
+    if (typeof window.Notification === "undefined") return;
+    if (window.Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return;
+
+    try {
+        const n = new window.Notification(notification.title || "e-Libra", {
+            body: notification.body || "",
+            tag: notification.id ? `elibra-notif-${notification.id}` : undefined,
+        });
+        n.onclick = () => {
+            window.focus();
+            n.close();
+        };
+    } catch {
+        /* ignore */
+    }
+}
+
+function ensureBrowserAlertPermission() {
+    if (typeof window.Notification === "undefined") return;
+    if (window.Notification.permission !== "default") return;
+    // Non-blocking; user gesture may be required in some browsers
+    window.Notification.requestPermission().catch(() => {});
+}
+
 function showToast(notification) {
+    showBrowserAlert(notification);
     const box = ensureToastContainer();
     const el = document.createElement("div");
     const detailUrl = notificationDetailUrl(notification);
@@ -378,6 +405,7 @@ export async function initNotifications() {
     const token = await ensureApiToken();
     if (!token) return;
     apiToken = token;
+    ensureBrowserAlertPermission();
 
     let seeded = false;
 
@@ -425,10 +453,6 @@ export async function initNotifications() {
             window.setTimeout(fn, 50);
         }
     };
-
-    defer(() => {
-        reloadAll().catch(() => {});
-    });
 
     seeMoreSidebarBtn?.addEventListener("click", async () => {
         const nextPage = Number(seeMoreSidebarBtn.dataset.nextPage || 0);
@@ -492,6 +516,15 @@ export async function initNotifications() {
         }, delay);
     };
     schedulePoll();
+
+    defer(() => {
+        reloadAll()
+            .then(() => {
+                // Catch anything that arrived during the seed window
+                window.setTimeout(() => pollOnce(), 1500);
+            })
+            .catch(() => {});
+    });
 
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {

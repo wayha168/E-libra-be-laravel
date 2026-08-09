@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
+use App\Support\StoresUploadedImages;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
@@ -27,11 +28,30 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request)
     {
-        $category = Category::create($request->validated());
+        $data = $request->validated();
+        unset($data['image_file'], $data['banner_image_file']);
+
+        if ($request->hasFile('image_file')) {
+            $data['image_id'] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'category',
+                $data['name'] ?? 'Category'
+            );
+        }
+
+        if ($request->hasFile('banner_image_file')) {
+            $data['banner_image_id'] = StoresUploadedImages::store(
+                $request->file('banner_image_file'),
+                'category_banner',
+                ($data['name'] ?? 'Category').' banner'
+            );
+        }
+
+        $category = Category::create($data);
 
         return response()->json([
             'message' => 'Category created successfully',
-            'data' => $category,
+            'data' => $category->load(['image', 'bannerImage']),
         ], 201);
     }
 
@@ -39,17 +59,36 @@ class CategoryController extends Controller
     {
         return response()->json([
             'message' => 'Category fetched successfully',
-            'data' => $category,
+            'data' => $category->load(['image', 'bannerImage']),
         ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        $category->update($request->validated());
+        $data = $request->validated();
+        unset($data['image_file'], $data['banner_image_file']);
+
+        if ($request->hasFile('image_file')) {
+            $data['image_id'] = StoresUploadedImages::store(
+                $request->file('image_file'),
+                'category',
+                $data['name'] ?? $category->name
+            );
+        }
+
+        if ($request->hasFile('banner_image_file')) {
+            $data['banner_image_id'] = StoresUploadedImages::store(
+                $request->file('banner_image_file'),
+                'category_banner',
+                ($data['name'] ?? $category->name).' banner'
+            );
+        }
+
+        $category->update($data);
 
         return response()->json([
             'message' => 'Category updated successfully',
-            'data' => $category,
+            'data' => $category->fresh()->load(['image', 'bannerImage']),
         ]);
     }
 

@@ -5,6 +5,7 @@ import { initNotifications, initActivityLive } from "../shared/notifications.js"
 import { initPresence } from "../shared/presence.js";
 import { initPreferences } from "../shared/preferences.js";
 import { initFlashToasts, initUploadFormToasts } from "../shared/toast.js";
+import { initImageUploadPreviews } from "../shared/imagePreview.js";
 import { initDashboardPage } from "./dashboard/index.js";
 import { initProfilePage } from "./profile/index.js";
 import { initEarningsPage } from "./earnings/index.js";
@@ -17,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initPreferences();
     initFlashToasts();
     initUploadFormToasts();
+    initImageUploadPreviews();
     initLayout();
     initSidebar();
     initAutoSearch();

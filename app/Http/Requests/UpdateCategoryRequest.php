@@ -29,6 +29,8 @@ class UpdateCategoryRequest extends FormRequest
             'parent_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'image_id' => ['nullable', 'uuid', 'exists:images,id'],
             'banner_image_id' => ['nullable', 'uuid', 'exists:images,id'],
+            'image_file' => ['nullable', 'image', 'max:5120'],
+            'banner_image_file' => ['nullable', 'image', 'max:5120'],
         ];
     }
 }
