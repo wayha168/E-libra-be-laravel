@@ -15,13 +15,20 @@ class PromotionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        // Optional auth (public route) — Bearer token still resolves the user when present
+        $user = $request->user('sanctum') ?? $request->user();
 
         $query = Promotion::query()
             ->with(['book:id,title,price,author_id', 'author.user:id,name', 'creator:id,name'])
             ->latest();
 
-        if (AuthorScope::isAuthorOnly($user)) {
+        $canManage = $user
+            && (method_exists($user, 'isAdmin') && ($user->isAdmin() || $user->isSuperAdmin() || $user->isAuthor()));
+
+        // Guests and regular users only see currently active promotions (like public comments/likes)
+        if (! $canManage) {
+            $query->active();
+        } elseif (AuthorScope::isAuthorOnly($user)) {
             $authorId = AuthorScope::authorIdOrAbort($user);
             $query->where(function ($q) use ($authorId) {
                 $q->where('author_id', $authorId)
@@ -30,12 +37,61 @@ class PromotionController extends Controller
         }
 
         if ($request->filled('book_id')) {
-            $query->where('book_id', $request->string('book_id')->toString());
+            $bookId = $request->string('book_id')->toString();
+            $bookAuthorId = Books::whereKey($bookId)->value('author_id');
+
+            $query->where(function ($q) use ($bookId, $bookAuthorId) {
+                $q->where('book_id', $bookId);
+
+                // Author-scoped promotions also apply to that author's books
+                if ($bookAuthorId) {
+                    $q->orWhere(function ($authorScope) use ($bookAuthorId) {
+                        $authorScope->whereNull('book_id')
+                            ->where('author_id', $bookAuthorId);
+                    });
+                }
+            });
+        }
+
+        if ($request->filled('author_id')) {
+            $query->where('author_id', $request->string('author_id')->toString());
         }
 
         return response()->json([
             'message' => 'Promotions fetched successfully',
             'data' => $query->paginate(15),
+        ]);
+    }
+
+    public function show(Request $request, Promotion $promotion): JsonResponse
+    {
+        $user = $request->user('sanctum') ?? $request->user();
+        $canManage = $user
+            && (method_exists($user, 'isAdmin') && ($user->isAdmin() || $user->isSuperAdmin() || $user->isAuthor()));
+
+        if (! $canManage && ! $promotion->isCurrentlyActive()) {
+            return response()->json([
+                'message' => 'Promotion not found.',
+            ], 404);
+        }
+
+        if ($canManage && AuthorScope::isAuthorOnly($user)) {
+            $authorId = AuthorScope::authorIdOrAbort($user);
+            $owns = $promotion->author_id === $authorId
+                || ($promotion->book && $promotion->book->author_id === $authorId);
+
+            if (! $owns && ! $promotion->isCurrentlyActive()) {
+                return response()->json([
+                    'message' => 'Promotion not found.',
+                ], 404);
+            }
+        }
+
+        $promotion->load(['book:id,title,price,author_id', 'author.user:id,name', 'creator:id,name']);
+
+        return response()->json([
+            'message' => 'Promotion fetched successfully',
+            'data' => $promotion,
         ]);
     }
 

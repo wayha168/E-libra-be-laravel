@@ -66,6 +66,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/search', [SearchController::class, 'index']);
     Route::get('/search/top-selling', [SearchController::class, 'topSelling']);
 
+    // Public: promotions (read only — guests can browse like comments/likes)
+    Route::get('/promotions', [\App\Http\Controllers\Api\PromotionController::class, 'index']);
+    Route::get('/promotions/{promotion}', [\App\Http\Controllers\Api\PromotionController::class, 'show']);
+
     // Stripe public key for frontend checkout
     Route::get('/stripe/config', function () {
         return response()->json([
@@ -81,7 +85,6 @@ Route::prefix('v1')->group(function () {
             ],
         ]);
     });
-
 
 
     // Authenticated APIs
@@ -159,8 +162,9 @@ Route::prefix('v1')->group(function () {
 
         Route::resource('images', ImageController::class)->only(['store', 'update', 'destroy']);
 
+        // Manage promotions (create/update/delete) — public list/show are above
         Route::resource('promotions', \App\Http\Controllers\Api\PromotionController::class)
-            ->only(['index', 'store', 'update', 'destroy'])
+            ->only(['store', 'update', 'destroy'])
             ->middleware(RoleMiddleware::class . ':admin,author,super_admin');
 
 
