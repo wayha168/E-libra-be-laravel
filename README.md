@@ -126,3 +126,62 @@ VITE_REVERB_SCHEME=https
 
 Rebuild assets (`npm run build`) after changing `VITE_*`. Keep the dashboard open as **admin/author** to see the bell; polling still refreshes every ~5s if WebSocket is down.
 
+### Production console errors (common)
+
+**1. `GET /storage/uploads/... 404`**  
+URL path is correct; the **file is missing on the server** and/or `public/storage` symlink is missing.
+
+```bash
+cd /var/www/E-libra-be-laravel
+bash scripts/fix-production-storage-reverb.sh
+# or:
+php artisan storage:link --force
+ls -la public/storage
+ls storage/app/public/uploads/profile
+```
+
+Uploads done on your PC are **not** in git. Copy them or re-upload on production:
+
+```bash
+# from your PC (example)
+scp -r storage/app/public/uploads root@YOUR_SERVER:/var/www/E-libra-be-laravel/storage/app/public/
+```
+
+**2. `WebSocket connection to wss://elibra.skinme.store/app/... failed`**  
+Browser is correct (WSS on `/app`). Reverb is not running or nginx is not proxying.
+
+```bash
+# install + start Reverb service
+cp deploy/reverb.service /etc/systemd/system/elibra-reverb.service
+# edit WorkingDirectory if your path differs
+systemctl daemon-reload
+systemctl enable --now elibra-reverb
+systemctl status elibra-reverb
+ss -tlnp | grep 8080
+```
+
+Add `location /app { ... }` from `deploy/nginx-elibra.conf.example` into the site config, then reload nginx.
+
+Production `.env` (then rebuild assets):
+
+```env
+BROADCAST_CONNECTION=reverb
+REVERB_HOST=elibra.skinme.store
+REVERB_PORT=443
+REVERB_SCHEME=https
+REVERB_SERVER_HOST=127.0.0.1
+REVERB_SERVER_PORT=8080
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST=elibra.skinme.store
+VITE_REVERB_PORT=443
+VITE_REVERB_SCHEME=https
+VITE_REVERB_ENABLED=true
+```
+
+```bash
+npm run build
+php artisan config:clear
+systemctl reload nginx
+```
+
+
