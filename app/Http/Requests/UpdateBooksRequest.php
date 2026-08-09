@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PdfUploadValidation;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Validator;
 
 class UpdateBooksRequest extends FormRequest
@@ -27,41 +27,22 @@ class UpdateBooksRequest extends FormRequest
             'image_file' => ['nullable', 'image', 'max:5120'],
             'image_files' => ['nullable', 'array'],
             'image_files.*' => ['image', 'max:5120'],
-            'pdf_file' => ['nullable', 'file', 'mimes:pdf', 'max:' . $pdfMaxKb],
+            'pdf_file' => ['nullable', 'file', 'mimetypes:application/pdf,application/x-pdf', 'max:' . $pdfMaxKb],
             'price' => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'pdf_file.uploaded' => 'The pdf file failed to upload. Check PHP upload_max_filesize / post_max_size (php-fpm) and nginx client_max_body_size.',
+            'pdf_file.mimetypes' => 'The file must be a PDF.',
+            'pdf_file.max' => 'The PDF may not be greater than :max kilobytes.',
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $validator) {
-            $file = $this->file('pdf_file');
-            if (! $file instanceof UploadedFile) {
-                return;
-            }
-
-            if ($file->isValid()) {
-                return;
-            }
-
-            $validator->errors()->add('pdf_file', self::uploadFailureMessage($file));
-        });
-    }
-
-    public static function uploadFailureMessage(UploadedFile $file): string
-    {
-        $code = $file->getError();
-        $uploadMax = ini_get('upload_max_filesize') ?: '?';
-        $postMax = ini_get('post_max_size') ?: '?';
-
-        return match ($code) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => "PDF too large for server limits (upload_max_filesize={$uploadMax}, post_max_size={$postMax}).",
-            UPLOAD_ERR_PARTIAL => 'PDF was only partially uploaded. Try again.',
-            UPLOAD_ERR_NO_FILE => 'No PDF file was received.',
-            UPLOAD_ERR_NO_TMP_DIR => 'Server missing temp folder for uploads.',
-            UPLOAD_ERR_CANT_WRITE => 'Server could not write the PDF (check storage permissions).',
-            UPLOAD_ERR_EXTENSION => 'A PHP extension blocked the PDF upload.',
-            default => "The pdf file failed to upload (PHP error {$code}; upload_max_filesize={$uploadMax}, post_max_size={$postMax}).",
-        };
+        $validator->after(fn (Validator $v) => PdfUploadValidation::inspect($this, $v));
     }
 }

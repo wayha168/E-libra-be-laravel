@@ -19,6 +19,7 @@ class BookPdfStorage
         $filename = Str::uuid() . '.pdf';
         $path = self::DIR . '/' . $filename;
 
+        Storage::disk(self::DISK)->makeDirectory(self::DIR);
         Storage::disk(self::DISK)->putFileAs(self::DIR, $file, $filename);
 
         $absolute = Storage::disk(self::DISK)->path($path);
