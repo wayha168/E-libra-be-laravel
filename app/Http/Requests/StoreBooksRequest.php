@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Validator;
 
 class StoreBooksRequest extends FormRequest
 {
@@ -25,8 +27,24 @@ class StoreBooksRequest extends FormRequest
             'image_file' => ['nullable', 'image', 'max:5120'],
             'image_files' => ['nullable', 'array'],
             'image_files.*' => ['image', 'max:5120'],
-            'pdf_file' => ['nullable', 'mimes:pdf', 'max:' . $pdfMaxKb],
+            'pdf_file' => ['nullable', 'file', 'mimes:pdf', 'max:' . $pdfMaxKb],
             'price' => ['nullable', 'numeric', 'min:0'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $file = $this->file('pdf_file');
+            if (! $file instanceof UploadedFile) {
+                return;
+            }
+
+            if ($file->isValid()) {
+                return;
+            }
+
+            $validator->errors()->add('pdf_file', UpdateBooksRequest::uploadFailureMessage($file));
+        });
     }
 }
