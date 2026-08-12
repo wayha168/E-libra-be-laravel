@@ -129,6 +129,11 @@ class User extends Authenticatable
         return $this->hasMany(BookComment::class, 'user_id', 'id');
     }
 
+    public function playlists()
+    {
+        return $this->hasMany(Playlist::class, 'user_id', 'id');
+    }
+
     public function bankAccounts()
     {
         return $this->hasMany(BankAccount::class);

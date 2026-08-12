@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\AbaPaywayMerchantController;
 use App\Http\Controllers\Api\BookFeedbackController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\PlaylistController;
+use App\Http\Controllers\Api\PlaylistFeedbackController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Broadcast;
@@ -69,6 +71,13 @@ Route::prefix('v1')->group(function () {
     // Public: promotions (read only — guests can browse like comments/likes)
     Route::get('/promotions', [\App\Http\Controllers\Api\PromotionController::class, 'index']);
     Route::get('/promotions/{promotion}', [\App\Http\Controllers\Api\PromotionController::class, 'show']);
+
+    // Public playlists (public ones + feedback/views)
+    Route::get('/playlists', [PlaylistController::class, 'index']);
+    Route::get('/playlists/{playlist}', [PlaylistController::class, 'show']);
+    Route::get('/playlists/{playlist}/comments', [PlaylistFeedbackController::class, 'comments']);
+    Route::get('/playlists/{playlist}/likes', [PlaylistFeedbackController::class, 'likes']);
+    Route::get('/playlists/{playlist}/feedback', [PlaylistFeedbackController::class, 'feedback']);
 
     // Stripe public key for frontend checkout
     Route::get('/stripe/config', function () {
@@ -138,7 +147,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/purchases/{purchase}', [BookPurchaseController::class, 'show'])
             ->middleware(RoleMiddleware::class . ':admin,super_admin');
 
-        // Permissions: any auth user can list their own; admins manage full CRUD
+        // Permissions: list own / all; grant·revoke only via role checkbox sync (no create)
         Route::get('/permissions', [PermissionController::class, 'index']);
 
         Route::middleware(RoleMiddleware::class . ':admin,super_admin')->group(function () {
@@ -146,11 +155,22 @@ Route::prefix('v1')->group(function () {
             Route::get('/roles/{role}', [RoleController::class, 'show']);
             Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
-            Route::post('/permissions', [PermissionController::class, 'store']);
             Route::get('/permissions/{permission}', [PermissionController::class, 'show']);
             Route::put('/permissions/{permission}', [PermissionController::class, 'update']);
             Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy']);
         });
+
+        // Playlists — any authenticated user can manage their own
+        Route::get('/me/playlists', [PlaylistController::class, 'mine']);
+        Route::post('/playlists', [PlaylistController::class, 'store']);
+        Route::put('/playlists/{playlist}', [PlaylistController::class, 'update']);
+        Route::patch('/playlists/{playlist}', [PlaylistController::class, 'update']);
+        Route::delete('/playlists/{playlist}', [PlaylistController::class, 'destroy']);
+        Route::post('/playlists/{playlist}/books', [PlaylistController::class, 'addBook']);
+        Route::delete('/playlists/{playlist}/books/{book}', [PlaylistController::class, 'removeBook']);
+        Route::put('/playlists/{playlist}/books/reorder', [PlaylistController::class, 'reorderBooks']);
+        Route::post('/playlists/{playlist}/like', [PlaylistFeedbackController::class, 'toggleLike']);
+        Route::post('/playlists/{playlist}/comments', [PlaylistFeedbackController::class, 'storeComment']);
 
         Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
         Route::get('/payway/status', [BooksController::class, 'paywayStatus']);

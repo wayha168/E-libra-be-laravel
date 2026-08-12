@@ -32,6 +32,11 @@ class PermissionSeeder extends Seeder
             ['name' => 'edit_images', 'display_name' => 'Edit Images', 'roles' => ['super_admin', 'admin']],
             ['name' => 'delete_images', 'display_name' => 'Delete Images', 'roles' => ['super_admin', 'admin']],
 
+            // Playlists: owners always manage their own; these grant admin override via role sync
+            ['name' => 'view_playlists', 'display_name' => 'View Playlists', 'roles' => ['super_admin', 'admin', 'author', 'user']],
+            ['name' => 'edit_playlists', 'display_name' => 'Edit Playlists', 'roles' => ['super_admin', 'admin']],
+            ['name' => 'delete_playlists', 'display_name' => 'Delete Playlists', 'roles' => ['super_admin', 'admin']],
+
             ['name' => 'manage_permissions', 'display_name' => 'Manage Permissions', 'roles' => ['super_admin', 'admin']],
         ];
 
@@ -71,6 +76,9 @@ class PermissionSeeder extends Seeder
             'create_images' => 'Upload new images',
             'edit_images' => 'Edit existing images',
             'delete_images' => 'Delete images',
+            'view_playlists' => 'View private playlists (owners always see their own)',
+            'edit_playlists' => 'Edit any playlist (owners always edit their own)',
+            'delete_playlists' => 'Delete any playlist (owners always delete their own)',
             'manage_permissions' => 'Manage role permissions',
             default => '',
         };

@@ -125,4 +125,11 @@ class Books extends Model
     {
         return $this->hasMany(Promotion::class, 'book_id', 'id');
     }
+
+    public function playlists()
+    {
+        return $this->belongsToMany(Playlist::class, 'playlist_books', 'book_id', 'playlist_id')
+            ->withPivot(['id', 'sort_order'])
+            ->withTimestamps();
+    }
 }
