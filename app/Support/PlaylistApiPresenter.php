@@ -14,6 +14,7 @@ class PlaylistApiPresenter
 
         $data = [
             'id' => $playlist->id,
+            'user_id' => $playlist->user_id,
             'name' => $playlist->name,
             'description' => $playlist->description,
             'is_public' => (bool) $playlist->is_public,

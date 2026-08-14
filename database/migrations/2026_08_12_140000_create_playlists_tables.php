@@ -10,21 +10,20 @@ return new class extends Migration
     {
         Schema::create('playlists', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->boolean('is_public')->default(true);
             $table->unsignedBigInteger('views_count')->default(0);
             $table->timestamps();
 
-            $table->index('user_id');
             $table->index('is_public');
         });
 
         Schema::create('playlist_books', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('playlist_id');
-            $table->uuid('book_id');
+            $table->foreignUuid('playlist_id')->constrained('playlists')->cascadeOnDelete();
+            $table->foreignUuid('book_id')->constrained('books')->cascadeOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
 
@@ -34,8 +33,8 @@ return new class extends Migration
 
         Schema::create('playlist_likes', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
-            $table->uuid('playlist_id');
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('playlist_id')->constrained('playlists')->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['user_id', 'playlist_id']);
@@ -43,8 +42,8 @@ return new class extends Migration
 
         Schema::create('playlist_comments', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
-            $table->uuid('playlist_id');
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('playlist_id')->constrained('playlists')->cascadeOnDelete();
             $table->text('body');
             $table->timestamps();
 

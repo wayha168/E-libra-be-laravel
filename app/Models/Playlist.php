@@ -23,14 +23,23 @@ class Playlist extends Model
         'views_count' => 'integer',
     ];
 
+    /** Playlist belongs to one user (owner). */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
+    /** Alias for user — each playlist has a single owner. */
+    public function owner()
+    {
+        return $this->user();
+    }
+
+    /** Playlist has many books (many-to-many via playlist_books). */
     public function books()
     {
         return $this->belongsToMany(Books::class, 'playlist_books', 'playlist_id', 'book_id')
+            ->using(PlaylistBook::class)
             ->withPivot(['id', 'sort_order'])
             ->withTimestamps()
             ->orderBy('playlist_books.sort_order');

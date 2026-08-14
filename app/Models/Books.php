@@ -126,9 +126,11 @@ class Books extends Model
         return $this->hasMany(Promotion::class, 'book_id', 'id');
     }
 
+    /** Book can appear in many playlists. */
     public function playlists()
     {
         return $this->belongsToMany(Playlist::class, 'playlist_books', 'book_id', 'playlist_id')
+            ->using(PlaylistBook::class)
             ->withPivot(['id', 'sort_order'])
             ->withTimestamps();
     }

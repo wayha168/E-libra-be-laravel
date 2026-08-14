@@ -349,4 +349,56 @@ class PlaylistSessionTest extends TestCase
         $this->postJson("/api/v1/playlists/{$playlistId}/comments", ['body' => 'Hi'])
             ->assertUnauthorized();
     }
+
+    public function test_playlist_belongs_to_user_and_has_many_books(): void
+    {
+        $user = $this->createUser('user');
+        $bookA = $this->createBook('Rel Book A');
+        $bookB = $this->createBook('Rel Book B');
+
+        $playlist = Playlist::create([
+            'user_id' => $user->id,
+            'name' => 'Relationship Test',
+            'is_public' => true,
+        ]);
+
+        $playlist->books()->attach($bookA->id, [
+            'id' => (string) Str::uuid(),
+            'sort_order' => 0,
+        ]);
+        $playlist->books()->attach($bookB->id, [
+            'id' => (string) Str::uuid(),
+            'sort_order' => 1,
+        ]);
+
+        // Playlist belongs to user
+        $this->assertTrue($playlist->user->is($user));
+        $this->assertTrue($playlist->owner->is($user));
+        $this->assertSame($user->id, $playlist->user_id);
+
+        // User has many playlists
+        $this->assertTrue($user->playlists->contains(fn ($p) => $p->id === $playlist->id));
+        $this->assertSame(1, $user->playlists()->count());
+
+        // Playlist has many books
+        $this->assertCount(2, $playlist->books);
+        $this->assertTrue($playlist->books->contains(fn ($b) => $b->id === $bookA->id));
+        $this->assertTrue($playlist->books->contains(fn ($b) => $b->id === $bookB->id));
+
+        // Book belongs to many playlists
+        $this->assertTrue($bookA->playlists->contains(fn ($p) => $p->id === $playlist->id));
+
+        // API exposes user_id
+        Sanctum::actingAs($user, ['*']);
+        $this->getJson("/api/v1/playlists/{$playlist->id}")
+            ->assertOk()
+            ->assertJsonPath('data.user_id', $user->id)
+            ->assertJsonPath('data.owner.id', $user->id)
+            ->assertJsonCount(2, 'data.books');
+
+        // Deleting user cascades playlists
+        $playlistId = $playlist->id;
+        $user->delete();
+        $this->assertNull(Playlist::find($playlistId));
+    }
 }
