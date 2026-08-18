@@ -51,7 +51,11 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
-        // Free reading is granted via free_trial promotions when the user requests access.
+        static::creating(function (self $user): void {
+            if ($user->trial_ends_at === null && static::isTrialEligible($user)) {
+                $user->trial_ends_at = now()->addDays((int) config('elibra.trial_days', 7));
+            }
+        });
     }
 
     protected static function isTrialEligible(User $user): bool
