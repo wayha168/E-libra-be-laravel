@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\AuthorEarningsController;
 use App\Http\Controllers\Api\AuthorsController;
 use App\Http\Controllers\Api\AbaPaywayMerchantController;
 use App\Http\Controllers\Api\BookFeedbackController;
+use App\Http\Controllers\Api\BookSaveController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PlaylistController;
@@ -177,6 +178,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/books/{book}/request-access', [BooksController::class, 'requestAccess']);
         Route::post('/books/{book}/like', [BookFeedbackController::class, 'toggleLike']);
         Route::post('/books/{book}/comments', [BookFeedbackController::class, 'storeComment']);
+
+        // Book save/bookmark routes
+        Route::get('/me/saved-books', [BookSaveController::class, 'index']);
+        Route::post('/books/{book}/save', [BookSaveController::class, 'save']);
+        Route::post('/books/{book}/unsave', [BookSaveController::class, 'unsave']);
+        Route::post('/books/{book}/save/toggle', [BookSaveController::class, 'toggle']);
+        Route::get('/books/{book}/saved', [BookSaveController::class, 'isSaved']);
+        Route::post('/books/{book}/add-to-playlist', [BookSaveController::class, 'addToPlaylist']);
+
+        // Offline cache routes for reading books offline
+        Route::get('/offline-cache', [BookSaveController::class, 'offlineCache']);
+        Route::get('/offline-cache/book/{book}', [BookSaveController::class, 'offlineBook']);
+
         Route::resource('books', BooksController::class)->only(['store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,super_admin');
         Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->middleware(RoleMiddleware::class . ':admin,author,user');
 

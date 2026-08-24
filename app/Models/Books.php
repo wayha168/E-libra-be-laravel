@@ -134,4 +134,10 @@ class Books extends Model
             ->withPivot(['id', 'sort_order'])
             ->withTimestamps();
     }
+
+    /** Book can be saved by many users. */
+    public function savedByUsers()
+    {
+        return $this->hasMany(UserSavedBook::class, 'book_id', 'id');
+    }
 }

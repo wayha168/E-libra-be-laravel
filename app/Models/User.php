@@ -145,6 +145,12 @@ class User extends Authenticatable
         return $this->hasMany(PlaylistLike::class, 'user_id', 'id');
     }
 
+    /** User has many saved books. */
+    public function savedBooks()
+    {
+        return $this->hasMany(UserSavedBook::class, 'user_id', 'id');
+    }
+
     /** User has many playlists (each playlist belongs to this user). */
     public function playlists()
     {
