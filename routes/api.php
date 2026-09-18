@@ -175,6 +175,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/books/{book}/buy', [BooksController::class, 'buy']);
         Route::get('/payway/status', [BooksController::class, 'paywayStatus']);
+        Route::get('/stripe/status', [BooksController::class, 'stripeStatus']);
         Route::post('/books/{book}/request-access', [BooksController::class, 'requestAccess']);
         Route::post('/books/{book}/like', [BookFeedbackController::class, 'toggleLike']);
         Route::post('/books/{book}/comments', [BookFeedbackController::class, 'storeComment']);
