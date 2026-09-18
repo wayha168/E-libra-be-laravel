@@ -103,6 +103,8 @@ class BooksController
             if ($pdf) {
                 $data['pdf_file'] = $pdf['pdf_file'];
                 $data['pdf_preview_path'] = $pdf['pdf_preview_path'];
+                $data['pdf_read_data'] = $pdf['pdf_read_data'] ?? null;
+                $data['pdf_read_size'] = $pdf['pdf_read_size'] ?? null;
             }
         }
 
@@ -236,6 +238,8 @@ class BooksController
             if ($pdf) {
                 $data['pdf_file'] = $pdf['pdf_file'];
                 $data['pdf_preview_path'] = $pdf['pdf_preview_path'];
+                $data['pdf_read_data'] = $pdf['pdf_read_data'] ?? null;
+                $data['pdf_read_size'] = $pdf['pdf_read_size'] ?? null;
             }
         }
 

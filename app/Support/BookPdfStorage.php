@@ -25,16 +25,20 @@ class BookPdfStorage
         $absolute = Storage::disk(self::DISK)->path($path);
         $previewPath = self::DIR . '/preview-' . $filename;
 
-        if (BookPdfPreviewGenerator::generate($absolute, Storage::disk(self::DISK)->path($previewPath), BookAccess::trialPages())) {
-            return [
-                'pdf_file' => $path,
-                'pdf_preview_path' => $previewPath,
-            ];
-        }
+        $previewGenerated = BookPdfPreviewGenerator::generate(
+            $absolute,
+            Storage::disk(self::DISK)->path($previewPath),
+            BookAccess::trialPages()
+        );
+
+        // Compact copy for offline reading, stored in the DB when small enough.
+        $readFile = BookReadFile::generate($absolute);
 
         return [
             'pdf_file' => $path,
-            'pdf_preview_path' => null,
+            'pdf_preview_path' => $previewGenerated ? $previewPath : null,
+            'pdf_read_data' => $readFile['data'] ?? null,
+            'pdf_read_size' => $readFile['size'] ?? null,
         ];
     }
 

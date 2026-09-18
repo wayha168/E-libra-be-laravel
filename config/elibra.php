@@ -6,6 +6,9 @@ return [
     'book_trial_pages' => max(1, min(50, (int) env('BOOK_TRIAL_PAGES', 15))),
     // Laravel file validation max is in kilobytes (524288 = 512 MB).
     'book_pdf_max_kb' => max(1024, (int) env('BOOK_PDF_MAX_KB', 524288)),
+    // Max size (KB) of the compact "read" PDF copy kept in the DB for offline
+    // reading. Larger derivatives are skipped and fall back to file streaming.
+    'book_read_max_kb' => max(64, (int) env('BOOK_READ_MAX_KB', 4096)),
     'trial_days' => (int) env('TRIAL_DAYS', 7),
     // Allow Scramble UI at /docs/api outside local (set true on production if needed)
     'scramble_docs_enabled' => filter_var(env('SCRAMBLE_DOCS_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
