@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\Controller;
 use App\Models\Books;
 use App\Models\Playlist;
 use App\Models\UserSavedBook;
+use App\Support\BookAccess;
 use App\Support\BookApiPresenter;
+use App\Support\BookReadFile;
 use App\Support\PlaylistApiPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -246,7 +248,7 @@ class BookSaveController extends Controller
         // Fetch saved books with their full data
         $savedBooks = UserSavedBook::query()
             ->where('user_id', $user->id)
-            ->with(['book:id,title,description,price,author_id,category_id,image_id,pdf_file,pdf_preview_path,status'])
+            ->with(['book:id,title,description,price,author_id,category_id,image_id,pdf_file,pdf_preview_path,pdf_read_size,status'])
             ->latest()
             ->get();
 
@@ -264,6 +266,12 @@ class BookSaveController extends Controller
                     'has_pdf' => !empty($book->pdf_file),
                     'pdf_file' => $book->pdf_file, // Include for offline access
                     'preview_path' => $book->pdf_preview_path,
+                    // Compact DB-stored copy for offline reading (bytes fetched per book).
+                    'has_read_file' => (int) $book->pdf_read_size > 0,
+                    'read_file_size' => $book->pdf_read_size,
+                    'read_file_url' => (int) $book->pdf_read_size > 0
+                        ? url('/api/v1/offline-cache/book/' . $book->id)
+                        : null,
                     'saved_at' => $saved->created_at?->toIso8601String(),
                     'notes' => $saved->notes,
                 ];
@@ -302,6 +310,7 @@ class BookSaveController extends Controller
 
         $cacheKey = "user.{$user->id}.offline_book.{$book->id}";
 
+        // Cache only the static book metadata (never the heavy base64 bytes).
         $offlineData = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($book, $saved) {
             return [
                 'id' => $book->id,
@@ -313,9 +322,21 @@ class BookSaveController extends Controller
                 'preview_path' => $book->pdf_preview_path,
                 'saved_at' => $saved->created_at?->toIso8601String(),
                 'notes' => $saved->notes,
-                'synced_at' => now()->toIso8601String(),
             ];
         });
+
+        // Access-sensitive fields are resolved per request so a fresh purchase,
+        // subscription, or trial takes effect immediately (not cached against
+        // entitlement). The readable bytes are only handed over when the user is
+        // entitled to the full book (free, purchased, subscribed, trial, staff).
+        $hasReadFile = BookReadFile::has($book);
+        $canRead = BookAccess::canAccessFull($user, $book);
+
+        $offlineData['has_read_file'] = $hasReadFile;
+        $offlineData['read_file_size'] = $book->pdf_read_size;
+        $offlineData['read_file'] = ($hasReadFile && $canRead) ? $book->pdf_read_data : null;
+        $offlineData['read_file_available'] = $hasReadFile && $canRead;
+        $offlineData['synced_at'] = now()->toIso8601String();
 
         return response()->json([
             'message' => 'Book offline data fetched',

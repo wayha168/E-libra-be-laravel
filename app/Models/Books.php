@@ -26,11 +26,15 @@ class Books extends Model
         'published_at',
         'pdf_file',
         'pdf_preview_path',
+        'pdf_read_data',
+        'pdf_read_size',
     ];
 
     protected $hidden = [
         'pdf_file',
         'pdf_preview_path',
+        'pdf_read_data',
+        'pdf_read_size',
     ];
 
     protected $casts = [
@@ -38,6 +42,7 @@ class Books extends Model
         'public_date' => 'date',
         'scheduled_at' => 'datetime',
         'published_at' => 'datetime',
+        'pdf_read_size' => 'integer',
     ];
 
     public function isPublished(): bool
