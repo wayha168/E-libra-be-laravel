@@ -1,0 +1,15 @@
+{
+  "name": "E-libra backend (Laravel)",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "bash scripts/cloud-agent-setup.sh",
+  "terminals": [
+    {
+      "name": "serve",
+      "command": "php artisan serve --host=0.0.0.0 --port=8000"
+    }
+  ]
+}
