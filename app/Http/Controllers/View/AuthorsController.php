@@ -10,6 +10,7 @@ use App\Models\Image;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AuthorEarnings;
+use App\Support\AuthorNotificationHandler;
 use App\Support\StoresUploadedImages;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,7 @@ class AuthorsController
     public function index(Request $request): View
     {
         $query = Author::query()
-            ->with(['user', 'image'])
+            ->with(['user', 'image', 'creator:id,name,email'])
             ->withCount('books');
 
         if ($request->filled('search')) {
@@ -74,7 +75,9 @@ class AuthorsController
             );
         }
 
-        $author = DB::transaction(function () use ($data, $mode, $imageId) {
+        $creatorId = $request->user()?->id;
+
+        $author = DB::transaction(function () use ($data, $mode, $imageId, $creatorId) {
             if ($mode === 'existing_user') {
                 $user = User::with('role')->findOrFail($data['user_id']);
                 $authorRoleId = Role::where('role', 'author')->value('id');
@@ -85,6 +88,7 @@ class AuthorsController
 
                 return Author::create([
                     'user_id' => $user->id,
+                    'created_by' => $creatorId,
                     'image_id' => $imageId,
                     'bio' => $data['bio'] ?? null,
                     'website' => $data['website'] ?? null,
@@ -114,6 +118,7 @@ class AuthorsController
 
             return Author::create([
                 'user_id' => $user->id,
+                'created_by' => $creatorId,
                 'image_id' => $imageId,
                 'bio' => $data['bio'] ?? null,
                 'website' => $data['website'] ?? null,
@@ -126,6 +131,8 @@ class AuthorsController
             ]);
         });
 
+        AuthorNotificationHandler::created($author, $request->user());
+
         return redirect()
             ->route('dashboard.authors.show', $author)
             ->with('success', 'Author account created successfully');
@@ -133,7 +140,7 @@ class AuthorsController
 
     public function show(Author $author): View
     {
-        $author->load(['user', 'image', 'books' => fn ($q) => $q->latest()->limit(10)]);
+        $author->load(['user', 'image', 'creator:id,name,email', 'books' => fn ($q) => $q->latest()->limit(10)]);
 
         $earnings = $author->user
             ? AuthorEarnings::forUser($author->user)

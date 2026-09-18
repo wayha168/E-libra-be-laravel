@@ -8,6 +8,7 @@ use App\Models\Author;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\GoogleAuthService;
+use App\Support\RegistrationNotificationHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -92,6 +93,8 @@ class AuthController extends Controller
                 'confirm_password' => null,
                 'email_verified_at' => now(),
             ]);
+
+            RegistrationNotificationHandler::handle($user);
         } else {
             $user->forceFill([
                 'google_id' => $profile['google_id'],
@@ -128,6 +131,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
+        RegistrationNotificationHandler::handle($user);
         DashboardOverviewController::broadcastStats();
 
         return ApiResponses::created(ApiResponseView::REGISTER_SUCCESSFUL, [
@@ -156,6 +160,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
+        RegistrationNotificationHandler::handle($user);
         DashboardOverviewController::broadcastStats();
 
         return ApiResponses::created(ApiResponseView::CREATE_ACCOUNT_SUCCESSFUL, [

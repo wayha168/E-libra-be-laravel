@@ -13,6 +13,7 @@ class Author extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by',
         'image_id',
         'bio',
         'website',
@@ -27,6 +28,12 @@ class Author extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    /** The staff/admin user who created this author record. */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     public function image()

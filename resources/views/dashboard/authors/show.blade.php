@@ -24,6 +24,19 @@
         </div>
 
         <div>
+            <div class="text-xs text-gray-500">Created by</div>
+            <div class="font-semibold">
+                @if($author->creator)
+                    {{ $author->creator->name }}
+                    <span class="text-xs font-normal text-gray-400">({{ $author->creator->email }})</span>
+                @else
+                    <span class="text-gray-400">System / unknown</span>
+                @endif
+                <span class="text-xs font-normal text-gray-400">· {{ $author->created_at?->diffForHumans() }}</span>
+            </div>
+        </div>
+
+        <div>
             <div class="text-xs text-gray-500">Bio</div>
             <div class="whitespace-pre-wrap">{{ $author->bio ?? '-' }}</div>
         </div>

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateAuthorRequest;
 use App\Models\Author;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\AuthorNotificationHandler;
 use App\Support\StoresUploadedImages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class AuthorsController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Author::query()
-            ->with(['user:id,name,email,status', 'image'])
+            ->with(['user:id,name,email,status', 'image', 'creator:id,name,email'])
             ->withCount('books');
 
         if ($request->filled('search')) {
@@ -41,7 +42,7 @@ class AuthorsController extends Controller
 
     public function show(Author $author): JsonResponse
     {
-        $author->load(['user:id,name,email,status', 'image'])->loadCount('books');
+        $author->load(['user:id,name,email,status', 'image', 'creator:id,name,email'])->loadCount('books');
 
         return response()->json([
             'message' => 'Author fetched successfully',
@@ -64,7 +65,9 @@ class AuthorsController extends Controller
             );
         }
 
-        $author = DB::transaction(function () use ($data, $mode, $imageId, $social) {
+        $creatorId = $request->user()?->id;
+
+        $author = DB::transaction(function () use ($data, $mode, $imageId, $social, $creatorId) {
             if ($mode === 'existing_user') {
                 $user = User::with('role')->findOrFail($data['user_id']);
                 $authorRoleId = Role::where('role', 'author')->value('id');
@@ -75,6 +78,7 @@ class AuthorsController extends Controller
 
                 return Author::create(array_merge([
                     'user_id' => $user->id,
+                    'created_by' => $creatorId,
                     'image_id' => $imageId,
                     'bio' => $data['bio'] ?? null,
                 ], $social));
@@ -97,12 +101,15 @@ class AuthorsController extends Controller
 
             return Author::create(array_merge([
                 'user_id' => $user->id,
+                'created_by' => $creatorId,
                 'image_id' => $imageId,
                 'bio' => $data['bio'] ?? null,
             ], $social));
         });
 
-        $author->load(['user:id,name,email,status', 'image'])->loadCount('books');
+        AuthorNotificationHandler::created($author, $request->user());
+
+        $author->load(['user:id,name,email,status', 'image', 'creator:id,name,email'])->loadCount('books');
 
         return response()->json([
             'message' => 'Author created successfully',
@@ -175,6 +182,8 @@ class AuthorsController extends Controller
             'image_id' => $author->image_id,
             'image_url' => $author->image?->url,
             'books_count' => $author->books_count ?? $author->books()->count(),
+            'created_by' => $author->created_by,
+            'created_by_name' => $author->creator?->name,
             'created_at' => $author->created_at?->toIso8601String(),
             'updated_at' => $author->updated_at?->toIso8601String(),
         ];
