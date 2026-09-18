@@ -660,6 +660,74 @@ class BooksController extends Controller
         ]);
     }
 
+    public function stripeStatus(Request $request, StripePaymentService $stripe)
+    {
+        $request->validate([
+            'session_id' => ['required_without:purchase_id', 'string', 'max:255'],
+            'purchase_id' => ['required_without:session_id', 'uuid'],
+        ]);
+
+        $purchase = UserBuyBook::query()
+            ->with(['book.author'])
+            ->when(
+                $request->filled('purchase_id'),
+                fn ($q) => $q->where('id', $request->string('purchase_id')->toString()),
+                fn ($q) => $q->where('stripe_checkout_session_id', $request->string('session_id')->toString())
+            )
+            ->first();
+
+        if (! $purchase) {
+            return response()->json([
+                'message' => 'Purchase not found for this session.',
+            ], 404);
+        }
+
+        $user = $request->user();
+        if ($user && $purchase->user_id !== $user->id && ! $user->isAdmin() && ! $user->isSuperAdmin()) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($purchase->status === 'paid') {
+            return response()->json([
+                'message' => 'Purchase already paid.',
+                'data' => [
+                    'local_status' => 'paid',
+                    'purchase' => $purchase,
+                    'author_earnings' => $purchase->authorEarnings(),
+                    'admin_commission_amount' => $purchase->admin_commission_amount,
+                ],
+            ]);
+        }
+
+        if ($stripe->isConfigured() && $purchase->stripe_checkout_session_id) {
+            try {
+                $stripe->reconcileCheckoutSession($purchase->stripe_checkout_session_id);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'message' => 'Unable to verify Stripe checkout session.',
+                    'code' => 'stripe_error',
+                    'error' => config('app.debug') ? $e->getMessage() : null,
+                    'data' => [
+                        'local_status' => $purchase->status,
+                        'purchase' => $purchase,
+                    ],
+                ], 422);
+            }
+        }
+
+        $fresh = $purchase->fresh();
+
+        return response()->json([
+            'message' => 'Stripe checkout session status fetched.',
+            'data' => [
+                'local_status' => $fresh->status,
+                'purchase' => $fresh,
+                'author_earnings' => $fresh->status === 'paid' ? $fresh->authorEarnings() : 0,
+                'admin_commission_amount' => $fresh->admin_commission_amount,
+            ],
+        ]);
+    }
+
     private function normalizePaymentMethod(?string $method): string
     {
         $method = $method ?: 'card';

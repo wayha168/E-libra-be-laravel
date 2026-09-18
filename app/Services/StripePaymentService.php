@@ -102,6 +102,33 @@ class StripePaymentService
         ]);
     }
 
+    /**
+     * Actively check a Checkout Session with Stripe and reconcile the local
+     * purchase, mirroring how PayWay purchases are verified via
+     * BooksController::paywayStatus (checkTransaction -> mark paid).
+     *
+     * Useful when the asynchronous webhook has not (yet) been delivered.
+     */
+    public function reconcileCheckoutSession(string $sessionId): void
+    {
+        $this->initStripe();
+
+        $session = Session::retrieve($sessionId);
+
+        $paid = ($session->payment_status ?? null) === 'paid'
+            || ($session->status ?? null) === 'complete';
+
+        if ($paid) {
+            $this->fulfillCheckoutSession($session);
+
+            return;
+        }
+
+        if (($session->status ?? null) === 'expired') {
+            $this->markPurchaseStatusFromObject($session, 'canceled');
+        }
+    }
+
     public function handleWebhook(string $payload, ?string $signature): void
     {
         $this->initStripe();

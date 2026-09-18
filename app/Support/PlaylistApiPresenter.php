@@ -96,8 +96,8 @@ class PlaylistApiPresenter
             $purchase = $purchases->get($bookId);
 
             $status[$bookId] = [
-                'is_saved' => isset($savedBookIds[$bookId]),
-                'is_purchased' => $purchase?->status === 'paid',
+                'user_has_saved' => isset($savedBookIds[$bookId]),
+                'user_has_purchased' => $purchase?->status === 'paid',
                 'purchase' => $purchase ? self::purchasePayload($purchase) : null,
             ];
         }
@@ -120,10 +120,25 @@ class PlaylistApiPresenter
             'checkout_session_id' => $purchase->stripe_checkout_session_id,
             'payway_tran_id' => $purchase->payway_tran_id,
             'purchased_at' => $purchase->purchased_at?->toIso8601String(),
-            'status_url' => $purchase->payway_tran_id
-                ? url('/api/v1/payway/status?tran_id=' . urlencode((string) $purchase->payway_tran_id))
-                : null,
+            'status_url' => self::sessionStatusUrl($purchase),
         ];
+    }
+
+    /**
+     * Endpoint the frontend can poll to check/verify the payment session,
+     * routed to the provider that owns the pending purchase.
+     */
+    private static function sessionStatusUrl(UserBuyBook $purchase): ?string
+    {
+        if ($purchase->payway_tran_id) {
+            return url('/api/v1/payway/status?tran_id=' . urlencode((string) $purchase->payway_tran_id));
+        }
+
+        if ($purchase->stripe_checkout_session_id) {
+            return url('/api/v1/stripe/status?session_id=' . urlencode((string) $purchase->stripe_checkout_session_id));
+        }
+
+        return null;
     }
 
     /**
@@ -134,8 +149,8 @@ class PlaylistApiPresenter
     private static function emptyBookStatus(): array
     {
         return [
-            'is_saved' => false,
-            'is_purchased' => false,
+            'user_has_saved' => false,
+            'user_has_purchased' => false,
             'purchase' => null,
         ];
     }

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Books;
-use App\Models\Playlist;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserBuyBook;
@@ -84,7 +83,7 @@ class PlaylistBookStatusTest extends TestCase
             'book_id' => $savedBook->id,
         ]);
 
-        // In-flight payment session (pending checkout).
+        // In-flight Stripe payment session (pending checkout).
         UserBuyBook::create([
             'user_id' => $owner->id,
             'book_id' => $pendingBook->id,
@@ -108,29 +107,34 @@ class PlaylistBookStatusTest extends TestCase
 
         // Bought book — purchased flag set, payment session shows paid.
         $bought = $this->bookRow($books, $boughtBook->id);
-        $this->assertTrue($bought['is_purchased']);
-        $this->assertFalse($bought['is_saved']);
+        $this->assertTrue($bought['user_has_purchased']);
+        $this->assertFalse($bought['user_has_saved']);
         $this->assertSame('paid', $bought['purchase']['status']);
         $this->assertFalse($bought['purchase']['payment_pending']);
         $this->assertSame('cs_test_paid_123', $bought['purchase']['checkout_session_id']);
 
         // Saved book — added flag set, no purchase record.
         $saved = $this->bookRow($books, $savedBook->id);
-        $this->assertTrue($saved['is_saved']);
-        $this->assertFalse($saved['is_purchased']);
+        $this->assertTrue($saved['user_has_saved']);
+        $this->assertFalse($saved['user_has_purchased']);
         $this->assertNull($saved['purchase']);
 
-        // Pending book — payment session in progress, not yet purchased.
+        // Pending book — Stripe session in progress; status_url points at the
+        // Stripe check endpoint so the frontend can verify it.
         $pending = $this->bookRow($books, $pendingBook->id);
-        $this->assertFalse($pending['is_purchased']);
+        $this->assertFalse($pending['user_has_purchased']);
         $this->assertSame('pending', $pending['purchase']['status']);
         $this->assertTrue($pending['purchase']['payment_pending']);
         $this->assertSame('cs_test_pending_456', $pending['purchase']['checkout_session_id']);
+        $this->assertStringContainsString(
+            '/api/v1/stripe/status?session_id=cs_test_pending_456',
+            $pending['purchase']['status_url']
+        );
 
         // Plain book — nothing recorded for this user.
         $plain = $this->bookRow($books, $plainBook->id);
-        $this->assertFalse($plain['is_saved']);
-        $this->assertFalse($plain['is_purchased']);
+        $this->assertFalse($plain['user_has_saved']);
+        $this->assertFalse($plain['user_has_purchased']);
         $this->assertNull($plain['purchase']);
     }
 
@@ -198,8 +202,8 @@ class PlaylistBookStatusTest extends TestCase
             $book->id
         );
 
-        $this->assertFalse($row['is_saved']);
-        $this->assertFalse($row['is_purchased']);
+        $this->assertFalse($row['user_has_saved']);
+        $this->assertFalse($row['user_has_purchased']);
         $this->assertNull($row['purchase']);
     }
 }
