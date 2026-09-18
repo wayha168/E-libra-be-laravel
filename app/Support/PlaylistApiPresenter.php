@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Models\Playlist;
 use App\Models\PlaylistComment;
 use App\Models\PlaylistLike;
+use App\Models\UserBuyBook;
+use App\Models\UserSavedBook;
 
 class PlaylistApiPresenter
 {
@@ -40,14 +42,101 @@ class PlaylistApiPresenter
 
         if ($withBooks) {
             $playlist->loadMissing(['books.category', 'books.author.user', 'books.image', 'books.images']);
+
+            $bookIds = $playlist->books->pluck('id')->all();
+            $bookStatus = self::userBookStatus($user, $bookIds);
+
             $data['books'] = $playlist->books->map(
-                fn ($book) => BookApiPresenter::toArray($book, $user, [
+                fn ($book) => BookApiPresenter::toArray($book, $user, array_merge([
                     'sort_order' => (int) ($book->pivot->sort_order ?? 0),
                     'playlist_book_id' => $book->pivot->id ?? null,
-                ])
+                ], $bookStatus[$book->id] ?? self::emptyBookStatus()))
             )->values()->all();
         }
 
         return $data;
+    }
+
+    /**
+     * Build per-book status for the authenticated user, keyed by book id.
+     *
+     * Tells the frontend whether the current user has already added (saved) or
+     * bought each book — matched on (user_id, book_id) — and surfaces any
+     * in-flight payment session so the checkout can be resumed/verified.
+     *
+     * A single batched query per concern keeps this free of N+1 lookups even
+     * for large playlists.
+     *
+     * @param  array<int, string>  $bookIds
+     * @return array<string, array<string, mixed>>
+     */
+    private static function userBookStatus($user, array $bookIds): array
+    {
+        if (! $user || $bookIds === []) {
+            return [];
+        }
+
+        $savedBookIds = array_flip(
+            UserSavedBook::query()
+                ->where('user_id', $user->id)
+                ->whereIn('book_id', $bookIds)
+                ->pluck('book_id')
+                ->all()
+        );
+
+        $purchases = UserBuyBook::query()
+            ->where('user_id', $user->id)
+            ->whereIn('book_id', $bookIds)
+            ->get()
+            ->keyBy('book_id');
+
+        $status = [];
+        foreach ($bookIds as $bookId) {
+            /** @var UserBuyBook|null $purchase */
+            $purchase = $purchases->get($bookId);
+
+            $status[$bookId] = [
+                'is_saved' => isset($savedBookIds[$bookId]),
+                'is_purchased' => $purchase?->status === 'paid',
+                'purchase' => $purchase ? self::purchasePayload($purchase) : null,
+            ];
+        }
+
+        return $status;
+    }
+
+    /**
+     * Shape the purchase / payment-session details exposed per book.
+     *
+     * @return array<string, mixed>
+     */
+    private static function purchasePayload(UserBuyBook $purchase): array
+    {
+        return [
+            'status' => $purchase->status,
+            'payment_method' => $purchase->payment_method,
+            'amount' => $purchase->amount,
+            'payment_pending' => $purchase->status === 'pending',
+            'checkout_session_id' => $purchase->stripe_checkout_session_id,
+            'payway_tran_id' => $purchase->payway_tran_id,
+            'purchased_at' => $purchase->purchased_at?->toIso8601String(),
+            'status_url' => $purchase->payway_tran_id
+                ? url('/api/v1/payway/status?tran_id=' . urlencode((string) $purchase->payway_tran_id))
+                : null,
+        ];
+    }
+
+    /**
+     * Default status for guests or books without any purchase/save record.
+     *
+     * @return array<string, mixed>
+     */
+    private static function emptyBookStatus(): array
+    {
+        return [
+            'is_saved' => false,
+            'is_purchased' => false,
+            'purchase' => null,
+        ];
     }
 }
