@@ -14,6 +14,7 @@ class UserRoleSeeder extends Seeder
             'admin',
             'author',
             'user',
+            'driver', // DrunkDrive
         ];
 
         foreach ($roles as $roleName) {

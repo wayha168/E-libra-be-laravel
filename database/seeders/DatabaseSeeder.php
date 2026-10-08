@@ -36,6 +36,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Admin', 'email' => 'admin@elibra.com', 'role' => 'admin'],
             ['name' => 'Author', 'email' => 'author@elibra.com', 'role' => 'author'],
             ['name' => 'Reader User', 'email' => 'user@elibra.com', 'role' => 'user'],
+            // DrunkDrive defaults (password: password)
+            ['name' => 'DrunkDrive Super Admin', 'email' => 'superadmin@drunkdrive.test', 'role' => 'super_admin'],
+            ['name' => 'DrunkDrive Admin', 'email' => 'admin@drunkdrive.test', 'role' => 'admin'],
+            ['name' => 'DrunkDrive Rider', 'email' => 'user@drunkdrive.test', 'role' => 'user'],
         ];
 
         foreach ($seedUsers as $u) {
