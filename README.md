@@ -1,11 +1,82 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# DrunkDrive (Laravel API)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Ride / driver backend on this repository’s **Laravel + Sanctum + Eloquent** stack.
+DrunkDrive is a clean domain under `/api/v1/drunkdrive` (E-libra book APIs remain under `/api/v1`).
+
+Full route reference: [`docs/drunkdrive.md`](docs/drunkdrive.md).
+
+## Stack
+
+- PHP 8.3, Laravel 13, Sanctum (Bearer JWT-like tokens)
+- MySQL (Docker Compose) or SQLite for local/dev (`.env.example` defaults to SQLite)
+- Role middleware: `user`, `driver`, `admin`, `super_admin` (product name **superadmin** is aliased)
+
+## Quick start
+
+```bash
+cp .env.example .env
+composer install
+php artisan key:generate
+touch database/database.sqlite   # if using sqlite
+php artisan migrate --seed
+php artisan storage:link         # licence scan URLs
+php artisan serve                # http://127.0.0.1:8000
+```
+
+Docker (MySQL + app):
+
+```bash
+docker compose up -d --build
+# app uses DB_HOST=db; see docker-compose.yaml
+```
+
+Run DrunkDrive-focused tests:
+
+```bash
+php artisan test --filter=DrunkDrive
+```
+
+### Seed logins (password: `password`)
+
+| Email | Role |
+|---|---|
+| `superadmin@drunkdrive.test` | super_admin |
+| `admin@drunkdrive.test` | admin |
+| `user@drunkdrive.test` | user |
+
+## Fare model
+
+Anchors from product: **1 km → 2000 R**, **5 km → 5000 R**.
+
+“Km^2” is interpreted as distance-based pricing; a pure quadratic through the origin cannot satisfy both anchors, so fare is the **linear fit**:
+
+```text
+fare_R(d) = round(1250 + 750 × d)     # d in km
+# same as: round(2000 + 750 × max(0, d − 1))
+```
+
+- `GET /api/v1/drunkdrive/fare/formula`
+- `POST /api/v1/drunkdrive/fare/quote` with `distance_km` or pickup/dropoff coordinates
+
+## API summary
+
+| Area | Paths |
+|---|---|
+| Auth | `POST .../auth/register`, `.../register-driver`, `.../login`, `GET .../auth/me` |
+| Licence | driver register + `POST/PUT .../driver/licence` (scan upload and/or manual; OCR stub) |
+| Stores | `GET/POST/PUT/DELETE .../stores` (write: admin/superadmin) |
+| Nearby | `GET .../drivers/nearby?latitude=&longitude=` |
+| Fare | `GET .../fare/formula`, `POST .../fare/quote` |
+| Trips | `POST .../trips`, `GET .../trips/history`, `PATCH .../trips/{id}/status` |
+
+Use header: `Authorization: Bearer {token}` and `Accept: application/json`.
+
+## Licence scan
+
+Drivers may upload a licence photo/PDF (`licence_scan`) and/or enter fields manually.
+OCR is optional/stubbed (`licence_ocr_stub`); files land in `storage/app/public/drunkdrive/licences`.
+
+---
 
 ## About Laravel
 

@@ -10,6 +10,8 @@ use App\Models\BookComment;
 use App\Models\BankAccount;
 use App\Models\AppNotification;
 use App\Models\UserActivity;
+use App\Models\DrunkDrive\DriverProfile;
+use App\Models\DrunkDrive\Trip;
 
 use Database\Factories\UserFactory;
 
@@ -81,7 +83,23 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
-        return $this->role && $this->role->role === $role;
+        if (!$this->role) {
+            return false;
+        }
+
+        $actual = $this->role->role;
+
+        if ($actual === $role) {
+            return true;
+        }
+
+        // Product name "superadmin" ↔ seeded role "super_admin"
+        $aliases = [
+            'superadmin' => 'super_admin',
+            'super_admin' => 'superadmin',
+        ];
+
+        return isset($aliases[$role]) && $actual === $aliases[$role];
     }
 
     public function hasPermission(string $permission): bool
@@ -95,7 +113,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasRole('super_admin') || $this->hasRole('superadmin');
     }
 
     public function isAdmin(): bool
@@ -108,9 +126,29 @@ class User extends Authenticatable
         return $this->hasRole('author');
     }
 
+    public function isDriver(): bool
+    {
+        return $this->hasRole('driver');
+    }
+
     public function isUser(): bool
     {
         return $this->hasRole('user');
+    }
+
+    public function driverProfile()
+    {
+        return $this->hasOne(DriverProfile::class, 'user_id', 'id');
+    }
+
+    public function drunkDriveTripsAsRider()
+    {
+        return $this->hasMany(Trip::class, 'user_id', 'id');
+    }
+
+    public function drunkDriveTripsAsDriver()
+    {
+        return $this->hasMany(Trip::class, 'driver_id', 'id');
     }
 
     public function getDisplayStatusAttribute(): string
